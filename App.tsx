@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction, Account } from './types';
+import { Transaction, Account, UserProfile, AISettings, AppData } from './types';
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
@@ -7,7 +7,7 @@ import CalendarView from './components/CalendarView';
 import StatsView from './components/StatsView';
 import SettingsModal from './components/SettingsModal';
 import { generateMonthlyInsight } from './services/geminiService';
-import { Home, List, Calendar as CalendarIcon, Plus, Lightbulb, Settings, Bell, ShoppingBag, FileText, PieChart, BarChart, User, Wallet, Check } from 'lucide-react';
+import { Home, List, Calendar as CalendarIcon, Plus, Lightbulb, Settings, Bell, BarChart, User, FileText } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'STATS' | 'LOG' | 'CALENDAR'>('HOME');
@@ -19,8 +19,19 @@ const App: React.FC = () => {
   const [loadingInsight, setLoadingInsight] = useState(false);
   
   // -- Data State --
-  const [userName, setUserName] = useState(() => localStorage.getItem('lets_track_it_username') || 'Personal');
-  
+  // User Profile
+  const [userProfile, setUserProfile] = useState<UserProfile>(() => {
+      const saved = localStorage.getItem('lets_track_it_profile');
+      return saved ? JSON.parse(saved) : { name: 'Personal', email: '', phone: '', isVerified: false };
+  });
+
+  // AI Settings
+  const [aiSettings, setAiSettings] = useState<AISettings>(() => {
+      const saved = localStorage.getItem('lets_track_it_ai_settings');
+      return saved ? JSON.parse(saved) : { persona: 'PROFESSIONAL', monthlyBudgetAlert: true, autoCategorize: true };
+  });
+
+  // Accounts
   const [accounts, setAccounts] = useState<Account[]>(() => {
     const saved = localStorage.getItem('lets_track_it_accounts');
     return saved ? JSON.parse(saved) : [{ 
@@ -40,33 +51,19 @@ const App: React.FC = () => {
     const saved = localStorage.getItem('lets_track_it_data');
     if (saved) {
         const loaded: Transaction[] = JSON.parse(saved);
-        // Data Migration: Assign existing transactions to default account if missing ID
         return loaded.map(t => t.accountId ? t : { ...t, accountId: 'default' });
     }
     return [];
   });
 
   // -- Persistence Effects --
-  useEffect(() => {
-    localStorage.setItem('lets_track_it_data', JSON.stringify(transactions));
-  }, [transactions]);
-
-  useEffect(() => {
-    localStorage.setItem('lets_track_it_accounts', JSON.stringify(accounts));
-    // If active account was deleted, switch to the first available
-    if (!accounts.find(a => a.id === activeAccountId) && accounts.length > 0) {
-        setActiveAccountId(accounts[0].id);
-    }
+  useEffect(() => { localStorage.setItem('lets_track_it_data', JSON.stringify(transactions)); }, [transactions]);
+  useEffect(() => { localStorage.setItem('lets_track_it_accounts', JSON.stringify(accounts)); 
+    if (!accounts.find(a => a.id === activeAccountId) && accounts.length > 0) setActiveAccountId(accounts[0].id);
   }, [accounts]);
-
-  useEffect(() => {
-    localStorage.setItem('lets_track_it_active_account', activeAccountId);
-  }, [activeAccountId]);
-
-  useEffect(() => {
-    localStorage.setItem('lets_track_it_username', userName);
-  }, [userName]);
-
+  useEffect(() => { localStorage.setItem('lets_track_it_active_account', activeAccountId); }, [activeAccountId]);
+  useEffect(() => { localStorage.setItem('lets_track_it_profile', JSON.stringify(userProfile)); }, [userProfile]);
+  useEffect(() => { localStorage.setItem('lets_track_it_ai_settings', JSON.stringify(aiSettings)); }, [aiSettings]);
 
   // -- Computed --
   const activeAccountTransactions = useMemo(() => {
@@ -75,9 +72,7 @@ const App: React.FC = () => {
 
   const activeAccountName = accounts.find(a => a.id === activeAccountId)?.name || 'Account';
 
-
   // -- Handlers --
-
   const openAddModal = (mode: 'DEFAULT' | 'SHOPPING' = 'DEFAULT') => {
       setAddModalMode(mode);
       setShowAddModal(true);
@@ -101,18 +96,57 @@ const App: React.FC = () => {
   };
 
   const handleDeleteAccount = (id: string) => {
-      // 1. Remove account
       setAccounts(prev => prev.filter(a => a.id !== id));
-      // 2. Remove associated transactions
       setTransactions(prev => prev.filter(t => t.accountId !== id));
   };
 
   const handleGenerateInsight = async () => {
     setShowInsight(true);
     setLoadingInsight(true);
-    const text = await generateMonthlyInsight(activeAccountTransactions);
+    const text = await generateMonthlyInsight(activeAccountTransactions, aiSettings.persona);
     setInsightText(text);
     setLoadingInsight(false);
+  };
+
+  // -- Backup & Restore Logic --
+  const handleExportData = () => {
+      const data: AppData = {
+          version: 1,
+          profile: userProfile,
+          accounts,
+          transactions,
+          aiSettings
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `LetsTrackIt_Backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+  };
+
+  const handleImportData = (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+          try {
+              const data = JSON.parse(e.target?.result as string) as AppData;
+              if (data.version && data.transactions && data.accounts) {
+                  setUserProfile(data.profile || userProfile);
+                  setAccounts(data.accounts);
+                  setTransactions(data.transactions);
+                  if(data.aiSettings) setAiSettings(data.aiSettings);
+                  alert("Data imported successfully!");
+                  setShowSettingsModal(false);
+              } else {
+                  alert("Invalid backup file format.");
+              }
+          } catch (error) {
+              console.error(error);
+              alert("Failed to parse the backup file.");
+          }
+      };
+      reader.readAsText(file);
   };
 
   return (
@@ -123,10 +157,10 @@ const App: React.FC = () => {
         {/* User Profile Section */}
         <div className="flex items-center gap-4 mb-10">
           <div className="w-12 h-12 rounded-full bg-stone-700 overflow-hidden border-2 border-amber-500/50">
-             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`} alt="User" className="w-full h-full object-cover" />
+             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.name}`} alt="User" className="w-full h-full object-cover" />
           </div>
           <div>
-            <h3 className="font-bold text-white text-lg truncate max-w-[120px]">{userName}</h3>
+            <h3 className="font-bold text-white text-lg truncate max-w-[120px]">{userProfile.name}</h3>
             <p className="text-xs text-stone-400">Finance Manager</p>
           </div>
           <button 
@@ -294,11 +328,15 @@ const App: React.FC = () => {
         {showSettingsModal && (
             <SettingsModal 
                 accounts={accounts}
+                userProfile={userProfile}
+                aiSettings={aiSettings}
                 onClose={() => setShowSettingsModal(false)}
                 onUpdateAccounts={setAccounts}
+                onUpdateProfile={setUserProfile}
+                onUpdateAiSettings={setAiSettings}
                 onDeleteAccount={handleDeleteAccount}
-                userName={userName}
-                setUserName={setUserName}
+                onExportData={handleExportData}
+                onImportData={handleImportData}
             />
         )}
 

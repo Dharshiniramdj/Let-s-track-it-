@@ -60,3 +60,24 @@ export interface DashboardStats {
   balance: number;
   shoppingCount: number;
 }
+
+export interface UserProfile {
+    name: string;
+    email: string;
+    phone: string;
+    isVerified: boolean;
+}
+
+export interface AISettings {
+    persona: 'PROFESSIONAL' | 'FRIENDLY' | 'STRICT' | 'FUNNY';
+    monthlyBudgetAlert: boolean;
+    autoCategorize: boolean;
+}
+
+export interface AppData {
+    version: number;
+    profile: UserProfile;
+    accounts: Account[];
+    transactions: Transaction[];
+    aiSettings: AISettings;
+}

@@ -99,12 +99,17 @@ export const parseImageTransaction = async (base64Image: string, mimeType: strin
   }
 };
 
-export const generateMonthlyInsight = async (transactions: Transaction[]): Promise<string> => {
+export const generateMonthlyInsight = async (transactions: Transaction[], persona: string = 'PROFESSIONAL'): Promise<string> => {
   if (!apiKey) return "API Key missing. Cannot generate insights.";
 
   const summary = transactions.map(t => 
     `${t.date}: ${t.type} of ${t.amount} via ${t.mode} for ${t.purpose} (${t.category})`
   ).join('\n');
+
+  let personaInstruction = "Be professional, concise, and analytical.";
+  if (persona === 'FRIENDLY') personaInstruction = "Be warm, encouraging, and use emojis like a supportive friend.";
+  if (persona === 'STRICT') personaInstruction = "Be strict, critical of overspending, and focus purely on saving.";
+  if (persona === 'FUNNY') personaInstruction = "Be humorous, sarcastic, and make financial advice entertaining.";
 
   try {
     const response = await ai.models.generateContent({
@@ -117,7 +122,7 @@ export const generateMonthlyInsight = async (transactions: Transaction[]): Promi
       3. Category Analysis: Highlight top expense categories.
       4. Monthly Outlook: Brief comment on financial health.
 
-      Keep it professional, encouraging, and concise. Use bullet points and emojis where appropriate.
+      System Persona Instruction: ${personaInstruction}
       
       Data:
       ${summary}`,
