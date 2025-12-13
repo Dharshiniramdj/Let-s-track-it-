@@ -74,6 +74,15 @@ export interface AISettings {
     autoCategorize: boolean;
 }
 
+export interface Suggestion {
+  id: string;
+  title: string;
+  message: string;
+  type: 'SAVING' | 'ALERT' | 'HABIT' | 'KUDOS';
+  action: string; // Short action text like "Review Subscriptions"
+  impact: 'HIGH' | 'MEDIUM' | 'LOW';
+}
+
 export interface AppData {
     version: number;
     profile: UserProfile;

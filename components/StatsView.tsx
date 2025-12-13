@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, CartesianGrid, Legend } from 'recharts';
-import { TrendingUp, TrendingDown, PieChart as PieIcon, Calendar } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid, Legend } from 'recharts';
+import { TrendingUp, TrendingDown, PieChart as PieIcon, ArrowDownRight, ArrowUpRight } from 'lucide-react';
 
 interface Props {
   transactions: Transaction[];
@@ -10,7 +10,7 @@ interface Props {
 const COLORS = ['#F59E0B', '#D97706', '#92400E', '#78350F', '#451a03', '#525252', '#262626'];
 
 const StatsView: React.FC<Props> = ({ transactions }) => {
-  const [timeRange, setTimeRange] = useState<'7D' | '30D' | '90D'>('7D');
+  const [timeRange, setTimeRange] = useState<'7D' | '30D' | '90D'>('30D');
 
   const stats = useMemo(() => {
     return transactions.reduce((acc, t) => {
@@ -45,21 +45,22 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
         const dateStr = d.toISOString().split('T')[0];
         
         // Filter transactions for this specific day
-        const dayTransactions = transactions.filter(t => t.date === dateStr && t.type === TransactionType.EXPENSE);
-        const total = dayTransactions.reduce((sum, t) => sum + t.amount, 0);
+        const dayTx = transactions.filter(t => t.date === dateStr);
+        const income = dayTx.filter(t => t.type === TransactionType.INCOME).reduce((sum, t) => sum + t.amount, 0);
+        const expense = dayTx.filter(t => t.type === TransactionType.EXPENSE).reduce((sum, t) => sum + t.amount, 0);
         
         // Format date label
         const label = timeRange === '90D' 
-            ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // "Jan 1" for long range
-            : d.toLocaleDateString('en-US', { weekday: 'short' }); // "Mon" for short range (or use date if preferred)
+            ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) // "Jan 1"
+            : d.toLocaleDateString('en-US', { weekday: 'short' }); // "Mon" or "15"
             
-        // For 30D we might want date numbers
-        const finalLabel = timeRange === '7D' ? d.toLocaleDateString('en-US', { weekday: 'short' }) : d.getDate().toString();
+        const finalLabel = timeRange === '7D' ? label : d.getDate().toString();
 
         result.push({
             date: timeRange === '90D' ? label : finalLabel,
             fullDate: dateStr,
-            amount: total
+            income,
+            expense
         });
     }
     return result;
@@ -88,10 +89,13 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
         {/* Charts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
-            {/* Spending Trend */}
+            {/* Spending vs Income Trend */}
             <div className="dashboard-card p-6 bg-[#1E1E1E] border border-stone-800 min-h-[350px] flex flex-col">
                 <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-lg font-bold text-white">Spending Trend</h3>
+                    <div>
+                        <h3 className="text-lg font-bold text-white">Cash Flow</h3>
+                        <p className="text-xs text-stone-500">Income vs Expense</p>
+                    </div>
                     <div className="flex bg-stone-800/50 p-1 rounded-lg">
                         {(['7D', '30D', '90D'] as const).map(range => (
                             <button
@@ -108,9 +112,13 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={trendData}>
                             <defs>
-                                <linearGradient id="colorStatsSplit" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#F59E0B" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#F59E0B" stopOpacity={0}/>
+                                <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#10B981" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
+                                </linearGradient>
+                                <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor="#F43F5E" stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
@@ -124,12 +132,40 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                             />
                             <Tooltip 
                                 contentStyle={{ backgroundColor: '#1E1E1E', borderRadius: '12px', border: '1px solid #333', color: '#fff' }}
-                                itemStyle={{ color: '#F59E0B' }}
                                 labelStyle={{ color: '#9ca3af', marginBottom: '0.25rem', fontSize: '0.75rem' }}
-                                formatter={(value: number) => [`₹${value}`, 'Spent']}
                                 labelFormatter={(label, payload) => payload[0]?.payload.fullDate || label}
+                                formatter={(value: number, name: string) => [
+                                    <span key="val" className="font-bold">₹{value.toLocaleString()}</span>, 
+                                    name === 'income' ? 'Income' : 'Expense'
+                                ]}
                             />
-                            <Area type="monotone" dataKey="amount" stroke="#F59E0B" strokeWidth={3} fillOpacity={1} fill="url(#colorStatsSplit)" />
+                            <Legend 
+                                verticalAlign="top" 
+                                height={36} 
+                                iconType="circle" 
+                                content={(props) => (
+                                    <div className="flex justify-end gap-4 text-xs font-bold mb-2">
+                                        <div className="flex items-center gap-1 text-emerald-500"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Income</div>
+                                        <div className="flex items-center gap-1 text-rose-500"><div className="w-2 h-2 rounded-full bg-rose-500"></div> Expense</div>
+                                    </div>
+                                )}
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="income" 
+                                stroke="#10B981" 
+                                strokeWidth={2} 
+                                fillOpacity={1} 
+                                fill="url(#colorIncome)" 
+                            />
+                            <Area 
+                                type="monotone" 
+                                dataKey="expense" 
+                                stroke="#F43F5E" 
+                                strokeWidth={2} 
+                                fillOpacity={1} 
+                                fill="url(#colorExpense)" 
+                            />
                         </AreaChart>
                     </ResponsiveContainer>
                 </div>
@@ -158,7 +194,7 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                                 <Tooltip 
                                     contentStyle={{ backgroundColor: '#1E1E1E', borderRadius: '12px', border: '1px solid #333', color: '#fff' }}
                                     itemStyle={{ color: '#fff' }} 
-                                    formatter={(value: number) => `₹${value}`}
+                                    formatter={(value: number) => `₹${value.toLocaleString()}`}
                                 />
                                 <Legend 
                                     verticalAlign="bottom" 

@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
-import { Transaction, TransactionType, PaymentMode, Category } from "../types";
+import { Transaction, TransactionType, PaymentMode, Category, Suggestion } from "../types";
 
 // Initialize Gemini
 // NOTE: In a real production app, ensure API keys are handled securely.
@@ -102,38 +102,110 @@ export const parseImageTransaction = async (base64Image: string, mimeType: strin
 export const generateMonthlyInsight = async (transactions: Transaction[], persona: string = 'PROFESSIONAL'): Promise<string> => {
   if (!apiKey) return "API Key missing. Cannot generate insights.";
 
-  const summary = transactions.map(t => 
-    `${t.date}: ${t.type} of ${t.amount} via ${t.mode} for ${t.purpose} (${t.category})`
-  ).join('\n');
+  const now = new Date();
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(now.getDate() - 30);
+  
+  const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
 
-  let personaInstruction = "Be professional, concise, and analytical.";
-  if (persona === 'FRIENDLY') personaInstruction = "Be warm, encouraging, and use emojis like a supportive friend.";
-  if (persona === 'STRICT') personaInstruction = "Be strict, critical of overspending, and focus purely on saving.";
-  if (persona === 'FUNNY') personaInstruction = "Be humorous, sarcastic, and make financial advice entertaining.";
+  if (recentTransactions.length === 0) {
+      return "No transactions found in the last 30 days to analyze. Add some spending to get smart insights!";
+  }
+
+  const simplifiedData = recentTransactions.map(t => ({
+      d: t.date,
+      t: t.type,
+      a: t.amount,
+      c: t.category,
+      p: t.purpose,
+  }));
+
+  const dataString = JSON.stringify(simplifiedData);
+
+  let systemInstruction = "You are a specialized financial analyst AI. Your goal is to provide a brief, actionable 'Monthly Spending Report' based on the provided transaction logs (d=date, t=type, a=amount, c=category, p=purpose).";
+  
+  if (persona === 'FRIENDLY') systemInstruction += " Tone: Warm, encouraging, using emojis. Like a supportive friend.";
+  else if (persona === 'STRICT') systemInstruction += " Tone: Strict, no-nonsense, critical of non-essential spending. Focus on saving.";
+  else if (persona === 'FUNNY') systemInstruction += " Tone: Humorous, sarcastic, witty. Make finance entertaining.";
+  else systemInstruction += " Tone: Professional, concise, data-driven.";
 
   try {
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash',
-      contents: `Analyze these transactions and provide a "Smart Spending Report".
+      contents: `Here is the JSON transaction data for the last 30 days:
+      ${dataString}
       
-      The report should include:
-      1. Spending Breakdown: Quick summary of where money is going.
-      2. AI Budget Tips: Actionable advice to save money based on the data.
-      3. Category Analysis: Highlight top expense categories.
-      4. Monthly Outlook: Brief comment on financial health.
-
-      System Persona Instruction: ${personaInstruction}
+      Please generate a report with these specific sections (use Markdown):
+      1. 📊 **Spending Breakdown**: Quick summary of where money is going.
+      2. 💡 **AI Budget Tips**: Specific, actionable advice to save money based on these specific purchases.
+      3. 🏆 **Top Categories**: The highest expense areas.
+      4. 🔮 **Outlook**: A brief financial health check.
       
-      Data:
-      ${summary}`,
+      Keep the response under 350 words. Focus on insights, not just listing data.`,
       config: {
-        maxOutputTokens: 800,
+        systemInstruction: systemInstruction,
+        maxOutputTokens: 1000,
+        temperature: 0.7
       }
     });
 
     return response.text || "No insights generated.";
   } catch (error) {
     console.error("Error generating insights:", error);
-    return "Could not generate insights at this time.";
+    return "Could not generate insights at this time. Please check your internet connection or API key.";
   }
 };
+
+export const generateActionableSuggestions = async (transactions: Transaction[], persona: string): Promise<Suggestion[]> => {
+    if (!apiKey) return [];
+
+    const now = new Date();
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(now.getDate() - 45); // Look at last 45 days for better patterns
+    
+    const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
+    
+    // We limit to 50 items to keep prompt size efficient if there are many
+    const simplifiedData = recentTransactions.slice(0, 50).map(t => ({
+        d: t.date, t: t.type, a: t.amount, c: t.category, p: t.purpose,
+    }));
+    
+    const suggestionSchema: Schema = {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                title: { type: Type.STRING },
+                message: { type: Type.STRING, description: "A brief, 1-2 sentence advice." },
+                type: { type: Type.STRING, enum: ['SAVING', 'ALERT', 'HABIT', 'KUDOS'] },
+                action: { type: Type.STRING, description: "Short actionable label like 'Cut Dining' or 'Invest More'" },
+                impact: { type: Type.STRING, enum: ['HIGH', 'MEDIUM', 'LOW'] }
+            },
+            required: ['title', 'message', 'type', 'action', 'impact']
+        }
+    };
+
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: `Analyze these transactions and provide 3 to 5 actionable financial suggestions to apply.
+            Data: ${JSON.stringify(simplifiedData)}
+            Persona: ${persona}`,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: suggestionSchema,
+                systemInstruction: "You are a proactive financial coach. Look for overspending in categories, recurring subscriptions, high-frequency small purchases, or celebrate good saving habits. Return a list of specific, actionable suggestions.",
+                temperature: 0.5
+            }
+        });
+
+        const text = response.text;
+        if(!text) return [];
+        const suggestions: Omit<Suggestion, 'id'>[] = JSON.parse(text);
+        
+        return suggestions.map(s => ({ ...s, id: crypto.randomUUID() }));
+    } catch (error) {
+        console.error("Error generating suggestions:", error);
+        return [];
+    }
+}

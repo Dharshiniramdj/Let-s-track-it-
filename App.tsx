@@ -5,12 +5,13 @@ import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
 import CalendarView from './components/CalendarView';
 import StatsView from './components/StatsView';
+import AdvisorView from './components/AdvisorView';
 import SettingsModal from './components/SettingsModal';
 import { generateMonthlyInsight } from './services/geminiService';
-import { Home, List, Calendar as CalendarIcon, Plus, Lightbulb, Settings, Bell, BarChart, User, FileText } from 'lucide-react';
+import { Home, List, Calendar as CalendarIcon, Plus, Lightbulb, Settings, Bell, BarChart, User, FileText, Sparkles, BrainCircuit } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'HOME' | 'STATS' | 'LOG' | 'CALENDAR'>('HOME');
+  const [activeTab, setActiveTab] = useState<'HOME' | 'STATS' | 'LOG' | 'CALENDAR' | 'ADVISOR'>('HOME');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [addModalMode, setAddModalMode] = useState<'DEFAULT' | 'SHOPPING'>('DEFAULT');
@@ -232,6 +233,13 @@ const App: React.FC = () => {
 
           <div>
              <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest mb-4 pl-2">Smart Tools</p>
+             <button 
+                onClick={() => setActiveTab('ADVISOR')} 
+                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 ${activeTab === 'ADVISOR' ? 'bg-[#3E3C39] text-amber-400 shadow-lg border-l-4 border-amber-500' : 'text-stone-400 hover:bg-[#3E3C39]/50 hover:text-stone-200'}`}
+             >
+                <BrainCircuit size={20} />
+                <span className="font-medium">Advisor</span>
+             </button>
              <button onClick={handleGenerateInsight} className="w-full flex items-center gap-4 px-4 py-3.5 rounded-2xl text-stone-400 hover:bg-[#3E3C39]/50 hover:text-amber-300 transition-colors">
                 <Lightbulb size={20} />
                 <span className="font-medium">Smart Report</span>
@@ -282,6 +290,7 @@ const App: React.FC = () => {
                 {activeTab === 'STATS' && 'Reports'}
                 {activeTab === 'LOG' && 'Transactions'}
                 {activeTab === 'CALENDAR' && 'Timeline'}
+                {activeTab === 'ADVISOR' && 'AI Advisor'}
               </h1>
               <p className="text-stone-500 text-xs hidden md:block flex items-center gap-2">
                  Account: <span className="text-amber-500 font-bold bg-amber-500/10 px-2 py-0.5 rounded">{activeAccountName}</span>
@@ -331,6 +340,7 @@ const App: React.FC = () => {
             {activeTab === 'STATS' && <StatsView transactions={activeAccountTransactions} />}
             {activeTab === 'LOG' && <TransactionList transactions={activeAccountTransactions} onDelete={deleteTransaction} onEdit={handleEditTransaction} />}
             {activeTab === 'CALENDAR' && <CalendarView transactions={activeAccountTransactions} />}
+            {activeTab === 'ADVISOR' && <AdvisorView transactions={activeAccountTransactions} aiSettings={aiSettings} />}
          </div>
 
         {/* Add Transaction Modal */}
@@ -415,12 +425,13 @@ const App: React.FC = () => {
               <Plus size={28} strokeWidth={3} />
             </button>
          </div>
-
+         
+         {/* Replaced List with Advisor on mobile for better accessibility to AI features */}
          <button 
-           onClick={() => setActiveTab('LOG')}
-           className={`flex flex-col items-center gap-1 ${activeTab === 'LOG' ? 'text-amber-500' : 'text-stone-500'}`}
+           onClick={() => setActiveTab('ADVISOR')}
+           className={`flex flex-col items-center gap-1 ${activeTab === 'ADVISOR' ? 'text-amber-500' : 'text-stone-500'}`}
          >
-           <List size={24} strokeWidth={activeTab === 'LOG' ? 2.5 : 2} />
+           <BrainCircuit size={24} strokeWidth={activeTab === 'ADVISOR' ? 2.5 : 2} />
          </button>
 
          <button 
