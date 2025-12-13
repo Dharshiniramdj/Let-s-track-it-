@@ -156,9 +156,9 @@ const App: React.FC = () => {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 h-screen overflow-y-auto relative bg-[#121212] pb-24 md:pb-0">
+      <main className="flex-1 h-screen overflow-y-auto relative bg-[#121212] pb-[calc(110px+env(safe-area-inset-bottom))] md:pb-0">
          {/* Top Header */}
-         <div className="sticky top-0 z-10 px-6 py-4 md:px-8 md:py-6 bg-[#121212]/90 backdrop-blur-md flex justify-between items-center">
+         <div className="sticky top-0 z-10 px-6 py-4 md:px-8 md:py-6 bg-[#121212]/90 backdrop-blur-md flex justify-between items-center pt-[calc(1rem+env(safe-area-inset-top))] md:pt-6">
             <div>
               <h1 className="text-xl md:text-2xl font-bold text-white mb-1">
                 {activeTab === 'HOME' && 'Home Overview'}
@@ -194,7 +194,7 @@ const App: React.FC = () => {
 
         {/* Add Transaction Modal */}
         {showAddModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <TransactionForm 
               onSave={addTransaction} 
               onCancel={() => setShowAddModal(false)} 
@@ -205,7 +205,7 @@ const App: React.FC = () => {
 
         {/* Insights Modal */}
         {showInsight && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <div className="bg-[#1E1E1E] rounded-3xl shadow-2xl p-8 max-w-lg w-full relative border border-stone-800">
                <button onClick={() => setShowInsight(false)} className="absolute top-6 right-6 text-stone-500 hover:text-white transition-colors">
                   <Plus size={24} className="rotate-45" />
@@ -233,4 +233,47 @@ const App: React.FC = () => {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2E2C29] border-t border-stone-800 px-6 py-4 z-40 flex justify-
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-[#2E2C29] border-t border-stone-800 px-6 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex justify-between items-center rounded-t-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+         <button 
+           onClick={() => setActiveTab('HOME')}
+           className={`flex flex-col items-center gap-1 ${activeTab === 'HOME' ? 'text-amber-500' : 'text-stone-500'}`}
+         >
+           <Home size={24} strokeWidth={activeTab === 'HOME' ? 2.5 : 2} />
+         </button>
+         
+         <button 
+           onClick={() => setActiveTab('STATS')}
+           className={`flex flex-col items-center gap-1 ${activeTab === 'STATS' ? 'text-amber-500' : 'text-stone-500'}`}
+         >
+           <BarChart size={24} strokeWidth={activeTab === 'STATS' ? 2.5 : 2} />
+         </button>
+
+         {/* Floating Main Action Button */}
+         <div className="relative -top-8">
+            <button 
+              onClick={() => openAddModal('DEFAULT')}
+              className="bg-amber-500 text-black p-4 rounded-full shadow-[0_0_20px_rgba(245,158,11,0.4)] border-4 border-[#121212] hover:scale-105 transition-transform"
+            >
+              <Plus size={28} strokeWidth={3} />
+            </button>
+         </div>
+
+         <button 
+           onClick={() => setActiveTab('LOG')}
+           className={`flex flex-col items-center gap-1 ${activeTab === 'LOG' ? 'text-amber-500' : 'text-stone-500'}`}
+         >
+           <List size={24} strokeWidth={activeTab === 'LOG' ? 2.5 : 2} />
+         </button>
+
+         <button 
+           onClick={() => setActiveTab('CALENDAR')}
+           className={`flex flex-col items-center gap-1 ${activeTab === 'CALENDAR' ? 'text-amber-500' : 'text-stone-500'}`}
+         >
+           <CalendarIcon size={24} strokeWidth={activeTab === 'CALENDAR' ? 2.5 : 2} />
+         </button>
+      </nav>
+    </div>
+  );
+};
+
+export default App;
