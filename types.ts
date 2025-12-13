@@ -66,6 +66,7 @@ export interface UserProfile {
     email: string;
     phone: string;
     isVerified: boolean;
+    avatarSeed?: string;
 }
 
 export interface AISettings {

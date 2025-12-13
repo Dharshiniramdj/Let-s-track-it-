@@ -70,19 +70,19 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
     <div className="space-y-6 pb-24 md:pb-0 animate-in fade-in duration-500">
         {/* Summary Cards */}
         <div className="grid grid-cols-2 gap-4">
-            <div className="bg-[#1E1E1E] p-5 rounded-2xl border border-stone-800">
+            <div className="bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)]">
                 <div className="flex items-center gap-2 mb-2 text-emerald-500">
                     <TrendingUp size={18} />
                     <span className="text-xs font-bold uppercase">Income</span>
                 </div>
-                <p className="text-xl font-bold text-white">₹{stats.income.toLocaleString()}</p>
+                <p className="text-xl font-bold text-[var(--text-main)]">₹{stats.income.toLocaleString()}</p>
             </div>
-            <div className="bg-[#1E1E1E] p-5 rounded-2xl border border-stone-800">
+            <div className="bg-[var(--bg-card)] p-5 rounded-2xl border border-[var(--border-color)]">
                 <div className="flex items-center gap-2 mb-2 text-rose-500">
                     <TrendingDown size={18} />
                     <span className="text-xs font-bold uppercase">Expenses</span>
                 </div>
-                <p className="text-xl font-bold text-white">₹{stats.expense.toLocaleString()}</p>
+                <p className="text-xl font-bold text-[var(--text-main)]">₹{stats.expense.toLocaleString()}</p>
             </div>
         </div>
 
@@ -90,18 +90,18 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             
             {/* Spending vs Income Trend */}
-            <div className="dashboard-card p-6 bg-[#1E1E1E] border border-stone-800 min-h-[350px] flex flex-col">
+            <div className="dashboard-card p-6 bg-[var(--bg-card)] border border-[var(--border-color)] min-h-[350px] flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h3 className="text-lg font-bold text-white">Cash Flow</h3>
-                        <p className="text-xs text-stone-500">Income vs Expense</p>
+                        <h3 className="text-lg font-bold text-[var(--text-main)]">Cash Flow</h3>
+                        <p className="text-xs text-[var(--text-muted)]">Income vs Expense</p>
                     </div>
-                    <div className="flex bg-stone-800/50 p-1 rounded-lg">
+                    <div className="flex bg-[var(--bg-secondary)] p-1 rounded-lg">
                         {(['7D', '30D', '90D'] as const).map(range => (
                             <button
                                 key={range}
                                 onClick={() => setTimeRange(range)}
-                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${timeRange === range ? 'bg-amber-500 text-black shadow-lg' : 'text-stone-400 hover:text-white'}`}
+                                className={`px-3 py-1 rounded-md text-xs font-bold transition-all ${timeRange === range ? 'bg-amber-500 text-black shadow-lg' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
                             >
                                 {range}
                             </button>
@@ -121,7 +121,7 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                                     <stop offset="95%" stopColor="#F43F5E" stopOpacity={0}/>
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#333" />
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" />
                             <XAxis 
                                 dataKey="date" 
                                 tick={{fontSize: 10, fill: '#666'}} 
@@ -131,8 +131,8 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                                 interval={timeRange === '90D' ? 6 : timeRange === '30D' ? 4 : 0}
                             />
                             <Tooltip 
-                                contentStyle={{ backgroundColor: '#1E1E1E', borderRadius: '12px', border: '1px solid #333', color: '#fff' }}
-                                labelStyle={{ color: '#9ca3af', marginBottom: '0.25rem', fontSize: '0.75rem' }}
+                                contentStyle={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}
+                                labelStyle={{ color: 'var(--text-muted)', marginBottom: '0.25rem', fontSize: '0.75rem' }}
                                 labelFormatter={(label, payload) => payload[0]?.payload.fullDate || label}
                                 formatter={(value: number, name: string) => [
                                     <span key="val" className="font-bold">₹{value.toLocaleString()}</span>, 
@@ -172,8 +172,8 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
             </div>
 
             {/* Category Pie Chart */}
-            <div className="dashboard-card p-6 bg-[#1E1E1E] border border-stone-800 min-h-[350px] flex flex-col">
-                <h3 className="text-lg font-bold text-white mb-6">Category Breakdown</h3>
+            <div className="dashboard-card p-6 bg-[var(--bg-card)] border border-[var(--border-color)] min-h-[350px] flex flex-col">
+                <h3 className="text-lg font-bold text-[var(--text-main)] mb-6">Category Breakdown</h3>
                 <div className="flex-1 w-full flex items-center justify-center min-h-0">
                     {categoryData.length > 0 ? (
                         <ResponsiveContainer width="100%" height="100%">
@@ -192,20 +192,20 @@ const StatsView: React.FC<Props> = ({ transactions }) => {
                                     ))}
                                 </Pie>
                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: '#1E1E1E', borderRadius: '12px', border: '1px solid #333', color: '#fff' }}
-                                    itemStyle={{ color: '#fff' }} 
+                                    contentStyle={{ backgroundColor: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-main)' }}
+                                    itemStyle={{ color: 'var(--text-main)' }} 
                                     formatter={(value: number) => `₹${value.toLocaleString()}`}
                                 />
                                 <Legend 
                                     verticalAlign="bottom" 
                                     height={36} 
                                     iconType="circle"
-                                    formatter={(value) => <span className="text-xs text-stone-400 ml-1">{value}</span>}
+                                    formatter={(value) => <span className="text-xs text-[var(--text-muted)] ml-1">{value}</span>}
                                 />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="text-stone-500 text-sm flex flex-col items-center">
+                        <div className="text-[var(--text-muted)] text-sm flex flex-col items-center">
                             <PieIcon size={32} className="mb-2 opacity-50"/>
                             No expense data yet
                         </div>

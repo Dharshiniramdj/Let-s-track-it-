@@ -1,6 +1,7 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { Wallet, ArrowUpRight, ArrowDownRight, ShoppingBag, Zap, CreditCard } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownRight, ShoppingBag, Zap, CreditCard, TrendingDown } from 'lucide-react';
+import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 interface Props {
   transactions: Transaction[];
@@ -9,6 +10,8 @@ interface Props {
 }
 
 const Dashboard: React.FC<Props> = ({ transactions, onQuickOrder, onViewStats }) => {
+  const [timeRange, setTimeRange] = useState<'7D' | '30D' | '90D'>('7D');
+
   const stats = useMemo(() => {
     return transactions.reduce((acc, t) => {
       if (t.type === TransactionType.INCOME) {
@@ -20,32 +23,55 @@ const Dashboard: React.FC<Props> = ({ transactions, onQuickOrder, onViewStats })
     }, { income: 0, expense: 0 });
   }, [transactions]);
 
+  const spendingTrend = useMemo(() => {
+    const data = [];
+    const daysToSubtract = timeRange === '7D' ? 6 : timeRange === '30D' ? 29 : 89;
+    
+    for (let i = daysToSubtract; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const dateStr = d.toISOString().split('T')[0];
+        
+        // Label formatting
+        const dayName = timeRange === '7D' 
+             ? d.toLocaleDateString('en-US', { weekday: 'short' })
+             : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        const amount = transactions
+            .filter(t => t.date === dateStr && t.type === TransactionType.EXPENSE)
+            .reduce((sum, t) => sum + t.amount, 0);
+            
+        data.push({ name: dayName, amount, fullDate: dateStr });
+    }
+    return data;
+  }, [transactions, timeRange]);
+
   const balance = stats.income - stats.expense;
-  const recentTx = transactions.slice(0, 4);
+  const recentTx = transactions.slice(0, 5);
 
   return (
     <div className="space-y-6 pb-20 md:pb-0 animate-in fade-in duration-500">
         {/* Top Row */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Balance Card */}
-            <div className="dashboard-card p-6 bg-gradient-to-br from-[#1E1E1E] to-black border border-stone-800 relative overflow-hidden group">
+            <div className="dashboard-card p-6 bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border-color)] relative overflow-hidden group shadow-lg">
                  <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                     <Wallet size={100} className="text-amber-500" />
                 </div>
                 <div className="relative z-10">
-                    <p className="text-stone-400 text-sm font-medium mb-1">Total Balance</p>
-                    <h2 className={`text-4xl font-bold mb-6 ${balance >= 0 ? 'text-white' : 'text-red-400'}`}>
+                    <p className="text-[var(--text-muted)] text-sm font-medium mb-1">Total Balance</p>
+                    <h2 className={`text-4xl font-bold mb-6 ${balance >= 0 ? 'text-[var(--text-main)]' : 'text-red-400'}`}>
                         ₹{balance.toLocaleString()}
                     </h2>
                     <div className="flex gap-6">
                         <div>
-                             <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider mb-1">Income</p>
+                             <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider mb-1">Income</p>
                              <p className="text-emerald-400 font-bold flex items-center gap-1">
                                 <ArrowDownRight size={14} /> ₹{stats.income.toLocaleString()}
                              </p>
                         </div>
                         <div>
-                             <p className="text-[10px] text-stone-500 uppercase font-bold tracking-wider mb-1">Expense</p>
+                             <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider mb-1">Expense</p>
                              <p className="text-rose-400 font-bold flex items-center gap-1">
                                 <ArrowUpRight size={14} /> ₹{stats.expense.toLocaleString()}
                              </p>
@@ -54,49 +80,96 @@ const Dashboard: React.FC<Props> = ({ transactions, onQuickOrder, onViewStats })
                 </div>
             </div>
 
-            {/* Quick Actions Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                 <div onClick={onQuickOrder} className="bg-amber-500 rounded-2xl p-5 cursor-pointer hover:bg-amber-400 transition-colors flex flex-col justify-between text-black shadow-lg shadow-amber-500/10">
-                     <div className="bg-black/10 w-fit p-2 rounded-full"><ShoppingBag size={20} /></div>
-                     <div>
-                         <p className="font-bold text-lg">Quick Order</p>
-                         <p className="text-xs opacity-70">Log purchase</p>
+            {/* Spending Graph & Actions */}
+            <div className="flex flex-col gap-4">
+                {/* Spending Graph */}
+                <div className="flex-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4 flex flex-col min-h-[220px]">
+                    <div className="flex flex-row justify-between items-center mb-4 gap-3">
+                        <div className="flex items-center gap-2 text-[var(--text-muted)] font-bold text-sm">
+                            <div className="p-1 bg-rose-500/10 rounded-md text-rose-500"><TrendingDown size={14} /></div>
+                            <span>Spending Analysis</span>
+                        </div>
+                        
+                        {/* Range Toggle */}
+                        <div className="flex bg-[var(--bg-input)] p-1 rounded-lg border border-[var(--border-color)]">
+                            {(['7D', '30D', '90D'] as const).map(range => (
+                                <button
+                                    key={range}
+                                    onClick={() => setTimeRange(range)}
+                                    className={`px-3 py-1 rounded-md text-[10px] sm:text-xs font-bold transition-all ${timeRange === range ? 'bg-amber-500 text-black shadow-sm' : 'text-[var(--text-muted)] hover:text-[var(--text-main)]'}`}
+                                >
+                                    {range}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex-1 w-full min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={spendingTrend}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" opacity={0.5} />
+                                <Tooltip 
+                                    cursor={{fill: 'var(--bg-secondary)'}}
+                                    contentStyle={{ backgroundColor: 'var(--bg-card)', borderRadius: '8px', border: '1px solid var(--border-color)', color: 'var(--text-main)', fontSize: '12px' }}
+                                    formatter={(value: number) => [`₹${value.toLocaleString()}`, 'Spent']}
+                                    labelFormatter={(label, payload) => payload[0]?.payload.fullDate || label}
+                                />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{fontSize: 10, fill: '#78716c'}} 
+                                    dy={10} 
+                                    interval={timeRange === '90D' ? 6 : timeRange === '30D' ? 3 : 0}
+                                />
+                                <Bar dataKey="amount" radius={[4, 4, 0, 0]}>
+                                    {spendingTrend.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.amount > 0 ? '#fb7185' : '#333'} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+                </div>
+
+                {/* Quick Actions */}
+                <div className="grid grid-cols-2 gap-4 h-24">
+                     <div onClick={onQuickOrder} className="bg-amber-500 rounded-2xl p-4 cursor-pointer hover:bg-amber-400 transition-colors flex flex-col justify-center items-center text-black shadow-lg shadow-amber-500/10 gap-2 active:scale-95 duration-200">
+                         <div className="bg-black/10 p-2 rounded-full"><ShoppingBag size={18} /></div>
+                         <p className="font-bold text-sm">Log Order</p>
                      </div>
-                 </div>
-                 <div onClick={onViewStats} className="bg-[#262626] border border-stone-800 rounded-2xl p-5 cursor-pointer hover:border-amber-500/50 transition-colors flex flex-col justify-between text-white group">
-                     <div className="bg-stone-800 w-fit p-2 rounded-full group-hover:bg-amber-500/20 group-hover:text-amber-500 transition-colors"><Zap size={20} /></div>
-                     <div>
-                         <p className="font-bold text-lg">Analyze</p>
-                         <p className="text-xs text-stone-400">View Stats</p>
+                     <div onClick={onViewStats} className="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl p-4 cursor-pointer hover:border-amber-500/50 transition-colors flex flex-col justify-center items-center text-[var(--text-main)] gap-2 group active:scale-95 duration-200">
+                         <div className="bg-[var(--bg-input)] p-2 rounded-full group-hover:bg-amber-500/20 group-hover:text-amber-500 transition-colors"><Zap size={18} /></div>
+                         <p className="font-bold text-sm">Full Report</p>
                      </div>
-                 </div>
+                </div>
             </div>
         </div>
 
         {/* Recent Transactions */}
         <div>
             <div className="flex justify-between items-center mb-4 px-1">
-                <h3 className="font-bold text-white">Recent Activity</h3>
+                <h3 className="font-bold text-[var(--text-main)]">Recent Activity</h3>
             </div>
             <div className="space-y-3">
                 {recentTx.map(t => (
-                    <div key={t.id} className="bg-[#1E1E1E] p-4 rounded-xl border border-stone-800 flex items-center justify-between hover:border-stone-700 transition-colors">
+                    <div key={t.id} className="bg-[var(--bg-card)] p-4 rounded-xl border border-[var(--border-color)] flex items-center justify-between hover:border-[var(--text-muted)] transition-colors">
                         <div className="flex items-center gap-4">
-                            <div className={`p-3 rounded-full ${t.type === TransactionType.INCOME ? 'bg-emerald-500/10 text-emerald-500' : 'bg-stone-800 text-stone-400'}`}>
+                            <div className={`p-3 rounded-full ${t.type === TransactionType.INCOME ? 'bg-emerald-500/10 text-emerald-500' : 'bg-[var(--bg-secondary)] text-[var(--text-muted)]'}`}>
                                 {t.type === TransactionType.INCOME ? <ArrowDownRight size={18} /> : 
                                  t.category === 'SHOPPING' ? <ShoppingBag size={18} /> : <CreditCard size={18} />}
                             </div>
                             <div>
-                                <p className="font-bold text-white text-sm">{t.purpose}</p>
-                                <p className="text-xs text-stone-500">{t.date} • {t.category}</p>
+                                <p className="font-bold text-[var(--text-main)] text-sm">{t.purpose}</p>
+                                <p className="text-xs text-[var(--text-muted)]">{t.date} • {t.category}</p>
                             </div>
                         </div>
-                        <span className={`font-bold ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-white'}`}>
+                        <span className={`font-bold ${t.type === TransactionType.INCOME ? 'text-emerald-400' : 'text-[var(--text-main)]'}`}>
                             {t.type === TransactionType.INCOME ? '+' : '-'}₹{t.amount.toLocaleString()}
                         </span>
                     </div>
                 ))}
-                {recentTx.length === 0 && <p className="text-stone-500 text-sm text-center py-8">No transactions yet.</p>}
+                {recentTx.length === 0 && <p className="text-[var(--text-muted)] text-sm text-center py-8">No transactions yet.</p>}
             </div>
         </div>
     </div>

@@ -136,22 +136,22 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
   };
 
   return (
-    <div className="bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 md:p-8 max-w-2xl mx-auto border border-stone-800 relative text-stone-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+    <div className="bg-[var(--bg-card)] rounded-3xl shadow-2xl p-6 md:p-8 max-w-2xl mx-auto border border-[var(--border-color)] relative text-[var(--text-main)] max-h-[90vh] overflow-y-auto custom-scrollbar">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-white">
+          <h2 className="text-2xl font-bold text-[var(--text-main)]">
              {initialData ? 'Edit Transaction' : (initialMode === 'SHOPPING' ? 'Log Order' : 'Add Transaction')}
           </h2>
-          <p className="text-xs text-stone-500">{initialData ? 'Update details' : 'Manual entry or AI Scan'}</p>
+          <p className="text-xs text-[var(--text-muted)]">{initialData ? 'Update details' : 'Manual entry or AI Scan'}</p>
         </div>
-        <button onClick={onCancel} className="p-2 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white transition-colors">
+        <button onClick={onCancel} className="p-2 rounded-full bg-[var(--bg-secondary)] hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-main)] transition-colors">
           <X size={20} />
         </button>
       </div>
 
       {!initialData && (
         /* AI Time Saving Section - Only show for new entries to keep edit clean */
-        <div className="mb-8 bg-[#262626] p-5 rounded-2xl border border-stone-800">
+        <div className="mb-8 bg-[var(--bg-secondary)] p-5 rounded-2xl border border-[var(--border-color)]">
             <div className="flex justify-between items-center mb-4">
                 <label className="text-sm font-bold text-amber-500 flex items-center gap-2">
                 <Sparkles size={16} />
@@ -166,7 +166,7 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
                     value={nlInput}
                     onChange={(e) => setNlInput(e.target.value)}
                     placeholder="e.g., 'Uber ride 450 rupees'"
-                    className="flex-1 px-4 py-3 rounded-xl bg-[#121212] border border-stone-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm text-white placeholder-stone-600 w-full"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-input)] border border-[var(--border-color)] focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm text-[var(--text-main)] placeholder-[var(--text-muted)] w-full"
                 />
                 <button
                     onClick={handleAiParse}
@@ -178,15 +178,15 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
             </div>
 
             <div className="relative flex py-2 items-center">
-                <div className="flex-grow border-t border-stone-700"></div>
-                <span className="flex-shrink-0 mx-4 text-[10px] text-stone-500 uppercase tracking-widest">or scan receipt</span>
-                <div className="flex-grow border-t border-stone-700"></div>
+                <div className="flex-grow border-t border-[var(--border-color)]"></div>
+                <span className="flex-shrink-0 mx-4 text-[10px] text-[var(--text-muted)] uppercase tracking-widest">or scan receipt</span>
+                <div className="flex-grow border-t border-[var(--border-color)]"></div>
             </div>
 
             <button 
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isLoadingAi}
-                className="w-full py-3 border border-dashed border-stone-600 rounded-xl text-stone-400 hover:bg-stone-800 hover:border-amber-500 hover:text-amber-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+                className="w-full py-3 border border-dashed border-[var(--border-color)] rounded-xl text-[var(--text-muted)] hover:bg-[var(--bg-hover)] hover:border-amber-500 hover:text-amber-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
             >
                 {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <Camera size={18} />}
                 Upload Screenshot / Bill
@@ -206,83 +206,83 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
         {/* Core Transaction Details */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Amount</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Amount</label>
             <div className="relative">
-                <span className="absolute left-4 top-3.5 text-stone-500 font-serif text-lg">₹</span>
+                <span className="absolute left-4 top-3.5 text-[var(--text-muted)] font-serif text-lg">₹</span>
                 <input
                 required
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-xl font-bold text-white placeholder-stone-700"
+                className="w-full pl-10 pr-4 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-xl font-bold text-[var(--text-main)] placeholder-[var(--text-muted)]"
                 placeholder="0.00"
                 />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Date</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Date</label>
             <input
               required
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full px-4 py-3.5 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300"
+              className="w-full px-4 py-3.5 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)]"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Type</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Type</label>
             <select
               value={type}
               onChange={(e) => setType(e.target.value as TransactionType)}
-              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+              className="w-full px-3 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] text-sm"
             >
               {Object.values(TransactionType).map(t => <option key={t} value={t}>{t}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Category</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Category</label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as Category)}
-              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+              className="w-full px-3 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] text-sm"
             >
               {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
            <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Mode</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Mode</label>
             <select
               value={mode}
               onChange={(e) => setMode(e.target.value as PaymentMode)}
-              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+              className="w-full px-3 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] text-sm"
             >
               {Object.values(PaymentMode).map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
            <div>
-            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Platform</label>
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Platform</label>
              <input
               type="text"
               value={platform}
               onChange={(e) => setPlatform(e.target.value)}
               placeholder="e.g. GPay"
-              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+              className="w-full px-3 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] text-sm"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Purpose / Description</label>
+          <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Purpose / Description</label>
           <input
             required
             type="text"
             value={purpose}
             onChange={(e) => setPurpose(e.target.value)}
             placeholder="What was this for?"
-            className="w-full px-4 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300"
+            className="w-full px-4 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)]"
           />
         </div>
 
@@ -292,62 +292,62 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
                 <input type="checkbox" name="toggle" id="shopping-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={showShopping} onChange={(e) => setShowShopping(e.target.checked)} style={{right: showShopping ? '0' : 'auto', left: showShopping ? 'auto' : '0', borderColor: showShopping ? '#F59E0B' : '#44403c'}}/>
                 <label htmlFor="shopping-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${showShopping ? 'bg-amber-500' : 'bg-stone-700'}`}></label>
             </div>
-            <label htmlFor="shopping-toggle" className="text-sm font-medium text-stone-400 select-none cursor-pointer flex items-center gap-2">
+            <label htmlFor="shopping-toggle" className="text-sm font-medium text-[var(--text-muted)] select-none cursor-pointer flex items-center gap-2">
                 <ShoppingBag size={16} /> Online Order Details
             </label>
         </div>
 
         {/* Extended Shopping Form */}
         {showShopping && (
-          <div className="bg-[#121212] p-5 rounded-2xl border border-stone-800 animate-in fade-in slide-in-from-top-2">
-            <h3 className="text-sm font-bold text-amber-500 mb-4 border-b border-stone-800 pb-2 flex items-center gap-2">
+          <div className="bg-[var(--bg-input)] p-5 rounded-2xl border border-[var(--border-color)] animate-in fade-in slide-in-from-top-2">
+            <h3 className="text-sm font-bold text-amber-500 mb-4 border-b border-[var(--border-color)] pb-2 flex items-center gap-2">
                 <Receipt size={14} /> Order Details
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">App Name</label>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1 uppercase">App Name</label>
                 <input
                   type="text"
                   value={appName}
                   onChange={(e) => setAppName(e.target.value)}
                   placeholder="Amazon..."
-                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-main)]"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">Product</label>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1 uppercase">Product</label>
                 <input
                   type="text"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   placeholder="Item Name..."
-                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-main)]"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">For Whom</label>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1 uppercase">For Whom</label>
                 <input
                   type="text"
                   value={forWhom}
                   onChange={(e) => setForWhom(e.target.value)}
                   placeholder="Self..."
-                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-main)]"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">Delivery Est.</label>
+                <label className="block text-[10px] font-bold text-[var(--text-muted)] mb-1 uppercase">Delivery Est.</label>
                 <input
                   type="date"
                   value={deliveryDate}
                   onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                  className="w-full px-3 py-2 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm text-[var(--text-main)]"
                 />
               </div>
             </div>
           </div>
         )}
 
-        <div className="pt-4 border-t border-stone-800">
+        <div className="pt-4 border-t border-[var(--border-color)]">
           <button
             type="submit"
             className="w-full bg-amber-500 text-black py-4 rounded-xl hover:bg-amber-400 transition-colors font-bold flex justify-center items-center gap-2 shadow-lg shadow-amber-500/20"

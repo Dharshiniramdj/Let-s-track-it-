@@ -62,27 +62,27 @@ const CalendarView: React.FC<Props> = ({ transactions }) => {
   const today = new Date();
 
   return (
-    <div className="dashboard-card p-6 border border-stone-800 bg-[#1E1E1E] text-stone-200">
+    <div className="dashboard-card p-6 border border-[var(--border-color)] bg-[var(--bg-card)] text-[var(--text-main)]">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+        <h2 className="text-2xl font-bold text-[var(--text-main)] flex items-center gap-2">
             <span className="text-amber-500">{monthName}</span>
-            <span className="text-stone-600 font-light">{yearName}</span>
+            <span className="text-[var(--text-muted)] font-light">{yearName}</span>
         </h2>
         <div className="flex gap-2">
-          <button onClick={prevMonth} className="p-2 hover:bg-stone-800 rounded-lg transition-colors text-stone-400 hover:text-white"><ChevronLeft size={20} /></button>
-          <button onClick={nextMonth} className="p-2 hover:bg-stone-800 rounded-lg transition-colors text-stone-400 hover:text-white"><ChevronRight size={20} /></button>
+          <button onClick={prevMonth} className="p-2 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"><ChevronLeft size={20} /></button>
+          <button onClick={nextMonth} className="p-2 hover:bg-[var(--bg-secondary)] rounded-lg transition-colors text-[var(--text-muted)] hover:text-[var(--text-main)]"><ChevronRight size={20} /></button>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-px bg-stone-800 border border-stone-800 rounded-2xl overflow-hidden shadow-inner">
+      <div className="grid grid-cols-7 gap-px bg-[var(--border-color)] border border-[var(--border-color)] rounded-2xl overflow-hidden shadow-inner">
         {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-          <div key={d} className="bg-[#262626] p-3 text-center text-xs font-bold text-stone-500 uppercase tracking-wider">
+          <div key={d} className="bg-[var(--bg-secondary)] p-3 text-center text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
             {d}
           </div>
         ))}
 
         {paddingDays.map((_, i) => (
-          <div key={`padding-${i}`} className="bg-[#121212]/50 h-32" />
+          <div key={`padding-${i}`} className="bg-[var(--bg-main)]/50 h-32" />
         ))}
 
         {days.map((day) => {
@@ -90,15 +90,15 @@ const CalendarView: React.FC<Props> = ({ transactions }) => {
           const isTodayDate = isSameDay(day, today);
 
           return (
-            <div key={day.toISOString()} className="bg-[#1E1E1E] h-32 p-2 border-t border-l border-transparent hover:bg-stone-800 transition-all relative group flex flex-col">
-              <div className={`text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full ${isTodayDate ? 'bg-amber-500 text-black shadow-lg font-bold' : 'text-stone-500'}`}>
+            <div key={day.toISOString()} className="bg-[var(--bg-card)] h-32 p-2 border-t border-l border-transparent hover:bg-[var(--bg-secondary)] transition-all relative group flex flex-col">
+              <div className={`text-sm font-medium mb-1 w-7 h-7 flex items-center justify-center rounded-full ${isTodayDate ? 'bg-amber-500 text-black shadow-lg font-bold' : 'text-[var(--text-muted)]'}`}>
                 {day.getDate()}
               </div>
               
               <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1.5">
                 {totalSpent > 0 && (
-                    <div className="text-[10px] text-stone-300 font-bold flex items-center gap-1 bg-[#121212] px-2 py-1 rounded border border-stone-800">
-                        <CreditCard size={10} className="text-stone-500" /> -{totalSpent.toLocaleString()}
+                    <div className="text-[10px] text-[var(--text-main)] font-bold flex items-center gap-1 bg-[var(--bg-input)] px-2 py-1 rounded border border-[var(--border-color)]">
+                        <CreditCard size={10} className="text-[var(--text-muted)]" /> -{totalSpent.toLocaleString()}
                     </div>
                 )}
                 {deliveries.map(d => (
@@ -108,7 +108,7 @@ const CalendarView: React.FC<Props> = ({ transactions }) => {
                 ))}
                  {/* Show count if too many */}
                  {transactions.length > 2 && (
-                    <div className="text-[10px] text-stone-600 text-center font-medium mt-1">
+                    <div className="text-[10px] text-[var(--text-muted)] text-center font-medium mt-1">
                         +{transactions.length - 2} more items
                     </div>
                  )}

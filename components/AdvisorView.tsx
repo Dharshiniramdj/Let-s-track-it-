@@ -56,14 +56,14 @@ const AdvisorView: React.FC<Props> = ({ transactions, aiSettings }) => {
           case 'HIGH': return 'bg-rose-500/20 text-rose-500 border-rose-500/30';
           case 'MEDIUM': return 'bg-amber-500/20 text-amber-500 border-amber-500/30';
           case 'LOW': return 'bg-blue-500/20 text-blue-500 border-blue-500/30';
-          default: return 'bg-stone-800 text-stone-500';
+          default: return 'bg-[var(--bg-secondary)] text-[var(--text-muted)]';
       }
   };
 
   return (
     <div className="space-y-8 pb-24 md:pb-0 animate-in fade-in duration-500">
         {/* Header Section */}
-        <div className="bg-gradient-to-r from-[#1E1E1E] to-stone-900 border border-stone-800 p-8 rounded-3xl relative overflow-hidden">
+        <div className="bg-gradient-to-r from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border-color)] p-8 rounded-3xl relative overflow-hidden">
             <div className="absolute top-0 right-0 p-10 opacity-5">
                 <Sparkles size={120} />
             </div>
@@ -72,14 +72,14 @@ const AdvisorView: React.FC<Props> = ({ transactions, aiSettings }) => {
                     <div className="bg-amber-500 p-2 rounded-lg text-black"><Sparkles size={20} /></div>
                     <span className="text-amber-500 font-bold tracking-wider text-xs uppercase">AI Financial Coach</span>
                 </div>
-                <h2 className="text-3xl font-bold text-white mb-4">Your Smart Advisor</h2>
-                <p className="text-stone-400 max-w-md mb-8 leading-relaxed">
+                <h2 className="text-3xl font-bold text-[var(--text-main)] mb-4">Your Smart Advisor</h2>
+                <p className="text-[var(--text-muted)] max-w-md mb-8 leading-relaxed">
                     I analyze your spending patterns to find opportunities for saving and better financial habits.
                 </p>
                 <button 
                     onClick={handleGenerate}
                     disabled={loading}
-                    className="bg-white text-black px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-stone-200 transition-colors disabled:opacity-50"
+                    className="bg-[var(--bg-main)] text-[var(--text-main)] px-6 py-3 rounded-xl font-bold flex items-center gap-2 hover:bg-[var(--bg-hover)] transition-colors disabled:opacity-50 border border-[var(--border-color)] shadow-sm"
                 >
                     {loading ? <Loader2 className="animate-spin" /> : <RefreshCw size={18} />}
                     {loading ? 'Analyzing Data...' : 'Analyze My Finances'}
@@ -90,8 +90,8 @@ const AdvisorView: React.FC<Props> = ({ transactions, aiSettings }) => {
         {/* Suggestions List */}
         <div>
             <div className="flex justify-between items-center mb-4 px-2">
-                <h3 className="font-bold text-white text-lg">Suggestions to Apply</h3>
-                <span className="text-xs text-stone-500">
+                <h3 className="font-bold text-[var(--text-main)] text-lg">Suggestions to Apply</h3>
+                <span className="text-xs text-[var(--text-muted)]">
                     {suggestions.length > 0 ? `${suggestions.length} items found` : 'No active suggestions'}
                 </span>
             </div>
@@ -99,13 +99,13 @@ const AdvisorView: React.FC<Props> = ({ transactions, aiSettings }) => {
             {loading && (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {[1,2,3].map(i => (
-                        <div key={i} className="h-40 bg-[#1E1E1E] rounded-2xl animate-pulse border border-stone-800"></div>
+                        <div key={i} className="h-40 bg-[var(--bg-card)] rounded-2xl animate-pulse border border-[var(--border-color)]"></div>
                     ))}
                 </div>
             )}
 
             {!loading && suggestions.length === 0 && (
-                <div className="text-center py-12 text-stone-500 bg-[#1E1E1E] rounded-3xl border border-stone-800 border-dashed">
+                <div className="text-center py-12 text-[var(--text-muted)] bg-[var(--bg-card)] rounded-3xl border border-[var(--border-color)] border-dashed">
                     <Sparkles size={40} className="mx-auto mb-4 opacity-30" />
                     <p>Tap "Analyze My Finances" to generate new insights.</p>
                 </div>
@@ -115,25 +115,25 @@ const AdvisorView: React.FC<Props> = ({ transactions, aiSettings }) => {
                 {suggestions.map((s) => (
                     <div 
                         key={s.id} 
-                        className={`bg-[#1E1E1E] border border-stone-800 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 group hover:border-stone-600 ${appliedIds.has(s.id) ? 'opacity-50 grayscale' : ''}`}
+                        className={`bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 group hover:border-[var(--text-muted)] ${appliedIds.has(s.id) ? 'opacity-50 grayscale' : ''}`}
                     >
                         <div>
                             <div className="flex justify-between items-start mb-4">
-                                <div className="p-3 bg-stone-800 rounded-xl group-hover:scale-110 transition-transform">
+                                <div className="p-3 bg-[var(--bg-secondary)] rounded-xl group-hover:scale-110 transition-transform">
                                     {getIcon(s.type)}
                                 </div>
                                 <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${getImpactColor(s.impact)}`}>
                                     {s.impact} IMPACT
                                 </span>
                             </div>
-                            <h4 className="font-bold text-white text-lg mb-2">{s.title}</h4>
-                            <p className="text-stone-400 text-sm leading-relaxed mb-6">{s.message}</p>
+                            <h4 className="font-bold text-[var(--text-main)] text-lg mb-2">{s.title}</h4>
+                            <p className="text-[var(--text-muted)] text-sm leading-relaxed mb-6">{s.message}</p>
                         </div>
 
                         <button 
                             onClick={() => handleApply(s.id)}
                             disabled={appliedIds.has(s.id)}
-                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${appliedIds.has(s.id) ? 'bg-stone-800 text-stone-500 cursor-default' : 'bg-stone-800 hover:bg-amber-500 hover:text-black text-white'}`}
+                            className={`w-full py-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${appliedIds.has(s.id) ? 'bg-[var(--bg-secondary)] text-[var(--text-muted)] cursor-default' : 'bg-[var(--bg-secondary)] hover:bg-amber-500 hover:text-black text-[var(--text-main)]'}`}
                         >
                             {appliedIds.has(s.id) ? (
                                 <>

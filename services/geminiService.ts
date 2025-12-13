@@ -99,63 +99,6 @@ export const parseImageTransaction = async (base64Image: string, mimeType: strin
   }
 };
 
-export const generateMonthlyInsight = async (transactions: Transaction[], persona: string = 'PROFESSIONAL'): Promise<string> => {
-  if (!apiKey) return "API Key missing. Cannot generate insights.";
-
-  const now = new Date();
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(now.getDate() - 30);
-  
-  const recentTransactions = transactions.filter(t => new Date(t.date) >= thirtyDaysAgo);
-
-  if (recentTransactions.length === 0) {
-      return "No transactions found in the last 30 days to analyze. Add some spending to get smart insights!";
-  }
-
-  const simplifiedData = recentTransactions.map(t => ({
-      d: t.date,
-      t: t.type,
-      a: t.amount,
-      c: t.category,
-      p: t.purpose,
-  }));
-
-  const dataString = JSON.stringify(simplifiedData);
-
-  let systemInstruction = "You are a specialized financial analyst AI. Your goal is to provide a brief, actionable 'Monthly Spending Report' based on the provided transaction logs (d=date, t=type, a=amount, c=category, p=purpose).";
-  
-  if (persona === 'FRIENDLY') systemInstruction += " Tone: Warm, encouraging, using emojis. Like a supportive friend.";
-  else if (persona === 'STRICT') systemInstruction += " Tone: Strict, no-nonsense, critical of non-essential spending. Focus on saving.";
-  else if (persona === 'FUNNY') systemInstruction += " Tone: Humorous, sarcastic, witty. Make finance entertaining.";
-  else systemInstruction += " Tone: Professional, concise, data-driven.";
-
-  try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `Here is the JSON transaction data for the last 30 days:
-      ${dataString}
-      
-      Please generate a report with these specific sections (use Markdown):
-      1. 📊 **Spending Breakdown**: Quick summary of where money is going.
-      2. 💡 **AI Budget Tips**: Specific, actionable advice to save money based on these specific purchases.
-      3. 🏆 **Top Categories**: The highest expense areas.
-      4. 🔮 **Outlook**: A brief financial health check.
-      
-      Keep the response under 350 words. Focus on insights, not just listing data.`,
-      config: {
-        systemInstruction: systemInstruction,
-        maxOutputTokens: 1000,
-        temperature: 0.7
-      }
-    });
-
-    return response.text || "No insights generated.";
-  } catch (error) {
-    console.error("Error generating insights:", error);
-    return "Could not generate insights at this time. Please check your internet connection or API key.";
-  }
-};
-
 export const generateActionableSuggestions = async (transactions: Transaction[], persona: string): Promise<Suggestion[]> => {
     if (!apiKey) return [];
 

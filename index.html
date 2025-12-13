@@ -18,16 +18,36 @@
       :root {
         --sat: env(safe-area-inset-top);
         --sab: env(safe-area-inset-bottom);
+        
+        /* Dark Mode (Default) */
+        --bg-main: #121212;
+        --bg-card: #1E1E1E;
+        --bg-secondary: #262626;
+        --bg-input: #121212;
+        --border-color: #292524; /* stone-800 */
+        --text-main: #e7e5e4; /* stone-200 */
+        --text-muted: #78716c; /* stone-500 */
+      }
+
+      body.light-mode {
+        /* Light Mode Overrides */
+        --bg-main: #F5F5F4; /* stone-100 */
+        --bg-card: #FFFFFF;
+        --bg-secondary: #E7E5E4; /* stone-200 */
+        --bg-input: #FFFFFF;
+        --border-color: #D6D3D1; /* stone-300 */
+        --text-main: #1C1917; /* stone-900 */
+        --text-muted: #78716c; /* stone-500 */
       }
 
       body {
         font-family: 'Outfit', sans-serif;
-        background-color: #121212; /* Deep Black/Charcoal */
-        color: #e7e5e4;
+        background-color: var(--bg-main);
+        color: var(--text-main);
         -webkit-tap-highlight-color: transparent;
-        /* Prevent text selection to feel more like an app, enable on inputs */
         user-select: none;
-        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+        overscroll-behavior-y: none;
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
 
       input, textarea, [contenteditable] {
@@ -40,7 +60,7 @@
         height: 6px;
       }
       ::-webkit-scrollbar-track {
-        background: #1c1917;
+        background: transparent;
       }
       ::-webkit-scrollbar-thumb {
         background: #44403c;
@@ -58,9 +78,9 @@
       }
       
       .dashboard-card {
-        background-color: #1E1E1E;
+        background-color: var(--bg-card);
         border-radius: 24px;
-        transition: transform 0.2s ease;
+        transition: transform 0.2s ease, background-color 0.3s ease, border-color 0.3s ease;
       }
       .dashboard-card:hover {
         transform: translateY(-2px);
