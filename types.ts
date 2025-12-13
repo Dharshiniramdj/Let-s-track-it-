@@ -34,6 +34,7 @@ export interface ShoppingDetails {
 
 export interface Transaction {
   id: string;
+  accountId: string; // Linked Account
   date: string; // ISO Date string
   amount: number;
   type: TransactionType;
@@ -43,6 +44,14 @@ export interface Transaction {
   category: Category;
   shoppingDetails?: ShoppingDetails;
   createdAt: number;
+}
+
+export interface Account {
+    id: string;
+    name: string;
+    type: 'PERSONAL' | 'FAMILY' | 'BUSINESS';
+    color: string;
+    avatarSeed: string;
 }
 
 export interface DashboardStats {

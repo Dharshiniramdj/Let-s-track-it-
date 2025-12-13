@@ -4,7 +4,7 @@ import { parseNaturalLanguageTransaction, parseImageTransaction } from '../servi
 import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag } from 'lucide-react';
 
 interface Props {
-  onSave: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  onSave: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'accountId'>) => void;
   onCancel: () => void;
   initialMode?: 'DEFAULT' | 'SHOPPING';
 }
