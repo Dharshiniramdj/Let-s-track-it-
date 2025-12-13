@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { Transaction, TransactionType } from '../types';
-import { ArrowDownRight, ArrowUpRight, Search, Trash2, Tag, Filter, FileSpreadsheet, FileText, Image as ImageIcon } from 'lucide-react';
+import { ArrowDownRight, ArrowUpRight, Search, Trash2, Tag, Filter, FileSpreadsheet, FileText, Image as ImageIcon, Pencil } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -9,9 +9,10 @@ import html2canvas from 'html2canvas';
 interface Props {
   transactions: Transaction[];
   onDelete: (id: string) => void;
+  onEdit: (transaction: Transaction) => void;
 }
 
-const TransactionList: React.FC<Props> = ({ transactions, onDelete }) => {
+const TransactionList: React.FC<Props> = ({ transactions, onDelete, onEdit }) => {
   const [filter, setFilter] = useState('');
   const tableRef = useRef<HTMLDivElement>(null);
 
@@ -168,9 +169,14 @@ const TransactionList: React.FC<Props> = ({ transactions, onDelete }) => {
                   {t.type === TransactionType.INCOME ? '+' : '-'}₹{t.amount.toLocaleString()}
                 </td>
                 <td className="px-6 py-4 text-center align-top pt-4">
-                  <button onClick={() => onDelete(t.id)} className="p-2 rounded-lg hover:bg-rose-500/20 text-stone-600 hover:text-rose-500 transition-colors">
-                    <Trash2 size={16} />
-                  </button>
+                  <div className="flex items-center justify-center gap-2">
+                    <button onClick={() => onEdit(t)} className="p-2 rounded-lg hover:bg-amber-500/20 text-stone-600 hover:text-amber-500 transition-colors" title="Edit">
+                      <Pencil size={16} />
+                    </button>
+                    <button onClick={() => onDelete(t.id)} className="p-2 rounded-lg hover:bg-rose-500/20 text-stone-600 hover:text-rose-500 transition-colors" title="Delete">
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}

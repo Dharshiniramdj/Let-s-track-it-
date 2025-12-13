@@ -18,6 +18,9 @@ const App: React.FC = () => {
   const [insightText, setInsightText] = useState('');
   const [loadingInsight, setLoadingInsight] = useState(false);
   
+  // Edit State
+  const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
+  
   // -- Data State --
   // User Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
@@ -74,19 +77,36 @@ const App: React.FC = () => {
 
   // -- Handlers --
   const openAddModal = (mode: 'DEFAULT' | 'SHOPPING' = 'DEFAULT') => {
+      setEditingTransaction(undefined); // Clear edit state
       setAddModalMode(mode);
       setShowAddModal(true);
   };
 
-  const addTransaction = (newTx: Omit<Transaction, 'id' | 'createdAt' | 'accountId'>) => {
-    const transaction: Transaction = {
-      ...newTx,
-      id: crypto.randomUUID(),
-      accountId: activeAccountId,
-      createdAt: Date.now()
-    };
-    setTransactions(prev => [transaction, ...prev]);
+  const handleEditTransaction = (transaction: Transaction) => {
+      setEditingTransaction(transaction);
+      setShowAddModal(true);
+  };
+
+  const handleSaveTransaction = (txData: Omit<Transaction, 'id' | 'createdAt' | 'accountId'>) => {
+    if (editingTransaction) {
+        // Update existing
+        setTransactions(prev => prev.map(t => 
+            t.id === editingTransaction.id 
+            ? { ...txData, id: t.id, createdAt: t.createdAt, accountId: t.accountId } 
+            : t
+        ));
+    } else {
+        // Create new
+        const transaction: Transaction = {
+            ...txData,
+            id: crypto.randomUUID(),
+            accountId: activeAccountId,
+            createdAt: Date.now()
+        };
+        setTransactions(prev => [transaction, ...prev]);
+    }
     setShowAddModal(false);
+    setEditingTransaction(undefined);
   };
 
   const deleteTransaction = (id: string) => {
@@ -309,7 +329,7 @@ const App: React.FC = () => {
          <div className="px-4 md:px-8 pb-10">
             {activeTab === 'HOME' && <Dashboard transactions={activeAccountTransactions} onQuickOrder={() => openAddModal('SHOPPING')} onViewStats={() => setActiveTab('STATS')} />}
             {activeTab === 'STATS' && <StatsView transactions={activeAccountTransactions} />}
-            {activeTab === 'LOG' && <TransactionList transactions={activeAccountTransactions} onDelete={deleteTransaction} />}
+            {activeTab === 'LOG' && <TransactionList transactions={activeAccountTransactions} onDelete={deleteTransaction} onEdit={handleEditTransaction} />}
             {activeTab === 'CALENDAR' && <CalendarView transactions={activeAccountTransactions} />}
          </div>
 
@@ -317,9 +337,10 @@ const App: React.FC = () => {
         {showAddModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
             <TransactionForm 
-              onSave={addTransaction} 
-              onCancel={() => setShowAddModal(false)} 
+              onSave={handleSaveTransaction} 
+              onCancel={() => { setShowAddModal(false); setEditingTransaction(undefined); }}
               initialMode={addModalMode}
+              initialData={editingTransaction}
             />
           </div>
         )}

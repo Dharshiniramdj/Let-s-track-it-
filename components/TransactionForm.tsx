@@ -1,15 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Transaction, TransactionType, PaymentMode, Category, ShoppingDetails } from '../types';
 import { parseNaturalLanguageTransaction, parseImageTransaction } from '../services/geminiService';
-import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag } from 'lucide-react';
+import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag, Save } from 'lucide-react';
 
 interface Props {
   onSave: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'accountId'>) => void;
   onCancel: () => void;
   initialMode?: 'DEFAULT' | 'SHOPPING';
+  initialData?: Transaction;
 }
 
-const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEFAULT' }) => {
+const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEFAULT', initialData }) => {
   const [nlInput, setNlInput] = useState('');
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [showShopping, setShowShopping] = useState(initialMode === 'SHOPPING');
@@ -32,12 +33,33 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
   const [deliveryDate, setDeliveryDate] = useState('');
   const [status, setStatus] = useState<'ORDERED' | 'DELIVERED'>('ORDERED');
 
+  // Load Initial Data for Editing
   useEffect(() => {
-    if (initialMode === 'SHOPPING') {
+    if (initialData) {
+        setAmount(initialData.amount.toString());
+        setType(initialData.type);
+        setMode(initialData.mode);
+        setPlatform(initialData.platform);
+        setPurpose(initialData.purpose);
+        setCategory(initialData.category);
+        setDate(initialData.date);
+
+        if (initialData.shoppingDetails || initialData.category === Category.SHOPPING) {
+            setShowShopping(true);
+            if (initialData.shoppingDetails) {
+                setAppName(initialData.shoppingDetails.appName);
+                setProductName(initialData.shoppingDetails.productName);
+                setForWhom(initialData.shoppingDetails.forWhom);
+                setOrderedDate(initialData.shoppingDetails.orderedDate);
+                setDeliveryDate(initialData.shoppingDetails.deliveryDate);
+                setStatus(initialData.shoppingDetails.status as any);
+            }
+        }
+    } else if (initialMode === 'SHOPPING') {
         setShowShopping(true);
         setCategory(Category.SHOPPING);
     }
-  }, [initialMode]);
+  }, [initialData, initialMode]);
 
   const populateForm = (result: any) => {
     if (result) {
@@ -97,7 +119,7 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
         forWhom,
         orderedDate,
         deliveryDate,
-        status
+        status: status as any
       };
     }
 
@@ -118,65 +140,67 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
       <div className="flex justify-between items-center mb-6">
         <div>
           <h2 className="text-2xl font-bold text-white">
-             {initialMode === 'SHOPPING' ? 'Log Order' : 'Add Transaction'}
+             {initialData ? 'Edit Transaction' : (initialMode === 'SHOPPING' ? 'Log Order' : 'Add Transaction')}
           </h2>
-          <p className="text-xs text-stone-500">Manual entry or AI Scan</p>
+          <p className="text-xs text-stone-500">{initialData ? 'Update details' : 'Manual entry or AI Scan'}</p>
         </div>
         <button onClick={onCancel} className="p-2 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white transition-colors">
           <X size={20} />
         </button>
       </div>
 
-      {/* AI Time Saving Section - Dark Mode */}
-      <div className="mb-8 bg-[#262626] p-5 rounded-2xl border border-stone-800">
-        <div className="flex justify-between items-center mb-4">
-            <label className="text-sm font-bold text-amber-500 flex items-center gap-2">
-            <Sparkles size={16} />
-            Smart Assistant
-            </label>
-        </div>
-        
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-2">
-            <input
-                type="text"
-                value={nlInput}
-                onChange={(e) => setNlInput(e.target.value)}
-                placeholder="e.g., 'Uber ride 450 rupees'"
-                className="flex-1 px-4 py-3 rounded-xl bg-[#121212] border border-stone-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm text-white placeholder-stone-600 w-full"
-            />
-            <button
-                onClick={handleAiParse}
-                disabled={isLoadingAi || !nlInput}
-                className="bg-amber-500 text-black px-4 py-2 rounded-xl hover:bg-amber-400 disabled:opacity-50 transition-colors text-sm font-bold whitespace-nowrap"
+      {!initialData && (
+        /* AI Time Saving Section - Only show for new entries to keep edit clean */
+        <div className="mb-8 bg-[#262626] p-5 rounded-2xl border border-stone-800">
+            <div className="flex justify-between items-center mb-4">
+                <label className="text-sm font-bold text-amber-500 flex items-center gap-2">
+                <Sparkles size={16} />
+                Smart Assistant
+                </label>
+            </div>
+            
+            <div className="flex flex-col gap-4">
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    value={nlInput}
+                    onChange={(e) => setNlInput(e.target.value)}
+                    placeholder="e.g., 'Uber ride 450 rupees'"
+                    className="flex-1 px-4 py-3 rounded-xl bg-[#121212] border border-stone-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm text-white placeholder-stone-600 w-full"
+                />
+                <button
+                    onClick={handleAiParse}
+                    disabled={isLoadingAi || !nlInput}
+                    className="bg-amber-500 text-black px-4 py-2 rounded-xl hover:bg-amber-400 disabled:opacity-50 transition-colors text-sm font-bold whitespace-nowrap"
+                >
+                    {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : 'Auto-Fill'}
+                </button>
+            </div>
+
+            <div className="relative flex py-2 items-center">
+                <div className="flex-grow border-t border-stone-700"></div>
+                <span className="flex-shrink-0 mx-4 text-[10px] text-stone-500 uppercase tracking-widest">or scan receipt</span>
+                <div className="flex-grow border-t border-stone-700"></div>
+            </div>
+
+            <button 
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isLoadingAi}
+                className="w-full py-3 border border-dashed border-stone-600 rounded-xl text-stone-400 hover:bg-stone-800 hover:border-amber-500 hover:text-amber-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
             >
-                {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : 'Auto-Fill'}
+                {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <Camera size={18} />}
+                Upload Screenshot / Bill
             </button>
-          </div>
-
-          <div className="relative flex py-2 items-center">
-             <div className="flex-grow border-t border-stone-700"></div>
-             <span className="flex-shrink-0 mx-4 text-[10px] text-stone-500 uppercase tracking-widest">or scan receipt</span>
-             <div className="flex-grow border-t border-stone-700"></div>
-          </div>
-
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isLoadingAi}
-            className="w-full py-3 border border-dashed border-stone-600 rounded-xl text-stone-400 hover:bg-stone-800 hover:border-amber-500 hover:text-amber-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
-          >
-             {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <Camera size={18} />}
-             Upload Screenshot / Bill
-          </button>
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*"
-            onChange={handleImageUpload}
-          />
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*"
+                onChange={handleImageUpload}
+            />
+            </div>
         </div>
-      </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Core Transaction Details */}
@@ -269,7 +293,7 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
                 <label htmlFor="shopping-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${showShopping ? 'bg-amber-500' : 'bg-stone-700'}`}></label>
             </div>
             <label htmlFor="shopping-toggle" className="text-sm font-medium text-stone-400 select-none cursor-pointer flex items-center gap-2">
-                <ShoppingBag size={16} /> Online Order
+                <ShoppingBag size={16} /> Online Order Details
             </label>
         </div>
 
@@ -328,8 +352,8 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
             type="submit"
             className="w-full bg-amber-500 text-black py-4 rounded-xl hover:bg-amber-400 transition-colors font-bold flex justify-center items-center gap-2 shadow-lg shadow-amber-500/20"
           >
-            <Plus size={20} />
-            Add to Ledger
+            {initialData ? <Save size={20} /> : <Plus size={20} />}
+            {initialData ? 'Update Transaction' : 'Add to Ledger'}
           </button>
         </div>
       </form>
