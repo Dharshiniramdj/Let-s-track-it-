@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction, Account, UserProfile, AISettings, AppData } from './types';
+import { Transaction, Account, UserProfile, AISettings, AppData, TransactionType } from './types';
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
@@ -7,12 +7,14 @@ import CalendarView from './components/CalendarView';
 import StatsView from './components/StatsView';
 import AdvisorView from './components/AdvisorView';
 import SettingsModal from './components/SettingsModal';
+import NotificationsPanel from './components/NotificationsPanel';
 import { Home, List, Calendar as CalendarIcon, Plus, Settings, Bell, BarChart, User, Sparkles, BrainCircuit } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'STATS' | 'LOG' | 'CALENDAR' | 'ADVISOR'>('HOME');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [addModalMode, setAddModalMode] = useState<'DEFAULT' | 'SHOPPING'>('DEFAULT');
   const [theme, setTheme] = useState<'DARK' | 'LIGHT'>(() => (localStorage.getItem('lets_track_it_theme') as 'DARK'|'LIGHT') || 'DARK');
   
@@ -79,6 +81,26 @@ const App: React.FC = () => {
   }, [transactions, activeAccountId]);
 
   const activeAccountName = accounts.find(a => a.id === activeAccountId)?.name || 'Account';
+
+  // Calculate notification count (Basic Logic)
+  const notificationCount = useMemo(() => {
+     let count = 0;
+     const todayStr = new Date().toISOString().split('T')[0];
+     // 1. If logged today, that's a summary notification
+     if (transactions.some(t => t.date === todayStr)) count++;
+     else count++; // Reminder notification
+     
+     // 2. Overspending check
+     const totalIncome = transactions.reduce((s,t) => s + (t.type === TransactionType.INCOME ? t.amount : 0), 0);
+     const totalExpense = transactions.reduce((s,t) => s + (t.type === TransactionType.EXPENSE ? t.amount : 0), 0);
+     if (totalExpense > totalIncome && totalIncome > 0) count++;
+
+     // 3. Deliveries
+     const deliveries = transactions.filter(t => t.shoppingDetails && (t.shoppingDetails.status === 'ORDERED'));
+     if (deliveries.length > 0) count++;
+     
+     return count;
+  }, [transactions]);
 
   // -- Handlers --
   const openAddModal = (mode: 'DEFAULT' | 'SHOPPING' = 'DEFAULT') => {
@@ -294,10 +316,23 @@ const App: React.FC = () => {
                   <User size={20} />
                </button>
                
-               <button className="p-3 rounded-full bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] relative border border-[var(--border-color)]">
-                  <Bell size={20} />
-                  <span className="absolute top-2 right-3 w-2 h-2 bg-amber-500 rounded-full"></span>
-               </button>
+               {/* Notification Bell with Logic */}
+               <div className="relative">
+                 <button 
+                    onClick={() => setShowNotifications(!showNotifications)}
+                    className={`p-3 rounded-full border transition-all ${showNotifications ? 'bg-amber-500 text-black border-amber-500' : 'bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] border-[var(--border-color)]'}`}
+                 >
+                    <Bell size={20} fill={showNotifications ? 'currentColor' : 'none'} />
+                    {notificationCount > 0 && !showNotifications && <span className="absolute top-2 right-3 w-2 h-2 bg-rose-500 rounded-full animate-pulse"></span>}
+                 </button>
+                 {showNotifications && (
+                    <NotificationsPanel 
+                        transactions={activeAccountTransactions} 
+                        onClose={() => setShowNotifications(false)} 
+                    />
+                 )}
+               </div>
+
                <button 
                  onClick={() => openAddModal('DEFAULT')}
                  className="hidden md:flex bg-amber-500 hover:bg-amber-400 text-black px-6 py-3 rounded-full font-bold shadow-lg shadow-amber-500/20 items-center gap-2 transition-all hover:scale-105"
