@@ -1,0 +1,340 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { Transaction, TransactionType, PaymentMode, Category, ShoppingDetails } from '../types';
+import { parseNaturalLanguageTransaction, parseImageTransaction } from '../services/geminiService';
+import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag } from 'lucide-react';
+
+interface Props {
+  onSave: (transaction: Omit<Transaction, 'id' | 'createdAt'>) => void;
+  onCancel: () => void;
+  initialMode?: 'DEFAULT' | 'SHOPPING';
+}
+
+const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEFAULT' }) => {
+  const [nlInput, setNlInput] = useState('');
+  const [isLoadingAi, setIsLoadingAi] = useState(false);
+  const [showShopping, setShowShopping] = useState(initialMode === 'SHOPPING');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Form State
+  const [amount, setAmount] = useState<string>('');
+  const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [mode, setMode] = useState<PaymentMode>(PaymentMode.UPI);
+  const [platform, setPlatform] = useState('');
+  const [purpose, setPurpose] = useState('');
+  const [category, setCategory] = useState<Category>(initialMode === 'SHOPPING' ? Category.SHOPPING : Category.OTHERS);
+  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+
+  // Shopping State
+  const [appName, setAppName] = useState('');
+  const [productName, setProductName] = useState('');
+  const [forWhom, setForWhom] = useState('Self');
+  const [orderedDate, setOrderedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [deliveryDate, setDeliveryDate] = useState('');
+  const [status, setStatus] = useState<'ORDERED' | 'DELIVERED'>('ORDERED');
+
+  useEffect(() => {
+    if (initialMode === 'SHOPPING') {
+        setShowShopping(true);
+        setCategory(Category.SHOPPING);
+    }
+  }, [initialMode]);
+
+  const populateForm = (result: any) => {
+    if (result) {
+      if (result.amount) setAmount(result.amount.toString());
+      if (result.type) setType(result.type as TransactionType);
+      if (result.mode) setMode(result.mode as PaymentMode);
+      if (result.platform) setPlatform(result.platform);
+      if (result.purpose) setPurpose(result.purpose);
+      if (result.category) setCategory(result.category as Category);
+      if (result.date) setDate(result.date);
+
+      // @ts-ignore
+      if (result.isShopping || result.category === Category.SHOPPING) {
+        setShowShopping(true);
+        if (result.shoppingDetails) {
+          setAppName(result.shoppingDetails.appName || '');
+          setProductName(result.shoppingDetails.productName || '');
+          setForWhom(result.shoppingDetails.forWhom || 'Self');
+          setOrderedDate(result.shoppingDetails.orderedDate || date);
+          setDeliveryDate(result.shoppingDetails.deliveryDate || '');
+        }
+      }
+    }
+  };
+
+  const handleAiParse = async () => {
+    if (!nlInput.trim()) return;
+    setIsLoadingAi(true);
+    const result = await parseNaturalLanguageTransaction(nlInput);
+    setIsLoadingAi(false);
+    populateForm(result);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsLoadingAi(true);
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64String = reader.result as string;
+      const result = await parseImageTransaction(base64String, file.type);
+      setIsLoadingAi(false);
+      populateForm(result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    let shoppingDetails: ShoppingDetails | undefined = undefined;
+    if (showShopping) {
+      shoppingDetails = {
+        appName,
+        productName,
+        forWhom,
+        orderedDate,
+        deliveryDate,
+        status
+      };
+    }
+
+    onSave({
+      amount: parseFloat(amount),
+      type,
+      mode,
+      platform,
+      purpose,
+      category,
+      date,
+      shoppingDetails
+    });
+  };
+
+  return (
+    <div className="bg-[#1E1E1E] rounded-3xl shadow-2xl p-6 md:p-8 max-w-2xl mx-auto border border-stone-800 relative text-stone-200 max-h-[90vh] overflow-y-auto custom-scrollbar">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">
+             {initialMode === 'SHOPPING' ? 'Log Order' : 'Add Transaction'}
+          </h2>
+          <p className="text-xs text-stone-500">Manual entry or AI Scan</p>
+        </div>
+        <button onClick={onCancel} className="p-2 rounded-full bg-stone-800 hover:bg-stone-700 text-stone-400 hover:text-white transition-colors">
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* AI Time Saving Section - Dark Mode */}
+      <div className="mb-8 bg-[#262626] p-5 rounded-2xl border border-stone-800">
+        <div className="flex justify-between items-center mb-4">
+            <label className="text-sm font-bold text-amber-500 flex items-center gap-2">
+            <Sparkles size={16} />
+            Smart Assistant
+            </label>
+        </div>
+        
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-2">
+            <input
+                type="text"
+                value={nlInput}
+                onChange={(e) => setNlInput(e.target.value)}
+                placeholder="e.g., 'Uber ride 450 rupees'"
+                className="flex-1 px-4 py-3 rounded-xl bg-[#121212] border border-stone-700 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none text-sm text-white placeholder-stone-600 w-full"
+            />
+            <button
+                onClick={handleAiParse}
+                disabled={isLoadingAi || !nlInput}
+                className="bg-amber-500 text-black px-4 py-2 rounded-xl hover:bg-amber-400 disabled:opacity-50 transition-colors text-sm font-bold whitespace-nowrap"
+            >
+                {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : 'Auto-Fill'}
+            </button>
+          </div>
+
+          <div className="relative flex py-2 items-center">
+             <div className="flex-grow border-t border-stone-700"></div>
+             <span className="flex-shrink-0 mx-4 text-[10px] text-stone-500 uppercase tracking-widest">or scan receipt</span>
+             <div className="flex-grow border-t border-stone-700"></div>
+          </div>
+
+          <button 
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isLoadingAi}
+            className="w-full py-3 border border-dashed border-stone-600 rounded-xl text-stone-400 hover:bg-stone-800 hover:border-amber-500 hover:text-amber-500 transition-all flex items-center justify-center gap-2 text-sm font-medium"
+          >
+             {isLoadingAi ? <Loader2 className="animate-spin" size={16} /> : <Camera size={18} />}
+             Upload Screenshot / Bill
+          </button>
+          <input 
+            type="file" 
+            ref={fileInputRef} 
+            className="hidden" 
+            accept="image/*"
+            onChange={handleImageUpload}
+          />
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Core Transaction Details */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Amount</label>
+            <div className="relative">
+                <span className="absolute left-4 top-3.5 text-stone-500 font-serif text-lg">₹</span>
+                <input
+                required
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-xl font-bold text-white placeholder-stone-700"
+                placeholder="0.00"
+                />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Date</label>
+            <input
+              required
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="w-full px-4 py-3.5 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Type</label>
+            <select
+              value={type}
+              onChange={(e) => setType(e.target.value as TransactionType)}
+              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+            >
+              {Object.values(TransactionType).map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Category</label>
+            <select
+              value={category}
+              onChange={(e) => setCategory(e.target.value as Category)}
+              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+            >
+              {Object.values(Category).map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </div>
+           <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Mode</label>
+            <select
+              value={mode}
+              onChange={(e) => setMode(e.target.value as PaymentMode)}
+              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+            >
+              {Object.values(PaymentMode).map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+           <div>
+            <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Platform</label>
+             <input
+              type="text"
+              value={platform}
+              onChange={(e) => setPlatform(e.target.value)}
+              placeholder="e.g. GPay"
+              className="w-full px-3 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300 text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Purpose / Description</label>
+          <input
+            required
+            type="text"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="What was this for?"
+            className="w-full px-4 py-3 bg-[#121212] border border-stone-700 rounded-xl focus:outline-none focus:border-amber-500 text-stone-300"
+          />
+        </div>
+
+        {/* Shopping Toggle */}
+        <div className="flex items-center gap-3 pt-2">
+           <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+                <input type="checkbox" name="toggle" id="shopping-toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer" checked={showShopping} onChange={(e) => setShowShopping(e.target.checked)} style={{right: showShopping ? '0' : 'auto', left: showShopping ? 'auto' : '0', borderColor: showShopping ? '#F59E0B' : '#44403c'}}/>
+                <label htmlFor="shopping-toggle" className={`toggle-label block overflow-hidden h-6 rounded-full cursor-pointer ${showShopping ? 'bg-amber-500' : 'bg-stone-700'}`}></label>
+            </div>
+            <label htmlFor="shopping-toggle" className="text-sm font-medium text-stone-400 select-none cursor-pointer flex items-center gap-2">
+                <ShoppingBag size={16} /> Online Order
+            </label>
+        </div>
+
+        {/* Extended Shopping Form */}
+        {showShopping && (
+          <div className="bg-[#121212] p-5 rounded-2xl border border-stone-800 animate-in fade-in slide-in-from-top-2">
+            <h3 className="text-sm font-bold text-amber-500 mb-4 border-b border-stone-800 pb-2 flex items-center gap-2">
+                <Receipt size={14} /> Order Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">App Name</label>
+                <input
+                  type="text"
+                  value={appName}
+                  onChange={(e) => setAppName(e.target.value)}
+                  placeholder="Amazon..."
+                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">Product</label>
+                <input
+                  type="text"
+                  value={productName}
+                  onChange={(e) => setProductName(e.target.value)}
+                  placeholder="Item Name..."
+                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">For Whom</label>
+                <input
+                  type="text"
+                  value={forWhom}
+                  onChange={(e) => setForWhom(e.target.value)}
+                  placeholder="Self..."
+                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-stone-500 mb-1 uppercase">Delivery Est.</label>
+                <input
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-[#262626] border border-stone-700 rounded-lg text-sm text-white"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="pt-4 border-t border-stone-800">
+          <button
+            type="submit"
+            className="w-full bg-amber-500 text-black py-4 rounded-xl hover:bg-amber-400 transition-colors font-bold flex justify-center items-center gap-2 shadow-lg shadow-amber-500/20"
+          >
+            <Plus size={20} />
+            Add to Ledger
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+};
+
+export default TransactionForm;
