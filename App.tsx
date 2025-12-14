@@ -42,7 +42,8 @@ const App: React.FC = () => {
         name: 'Personal', 
         type: 'PERSONAL', 
         color: 'amber', 
-        avatarSeed: 'Felix' 
+        avatarSeed: 'Felix',
+        budgets: {}
     }];
   });
 
@@ -80,7 +81,8 @@ const App: React.FC = () => {
     return transactions.filter(t => t.accountId === activeAccountId);
   }, [transactions, activeAccountId]);
 
-  const activeAccountName = accounts.find(a => a.id === activeAccountId)?.name || 'Account';
+  const activeAccount = accounts.find(a => a.id === activeAccountId);
+  const activeAccountName = activeAccount?.name || 'Account';
 
   // Calculate notification count (Basic Logic)
   const notificationCount = useMemo(() => {
@@ -359,7 +361,7 @@ const App: React.FC = () => {
          </div>
 
          <div className="px-4 md:px-8 pb-10">
-            {activeTab === 'HOME' && <Dashboard transactions={activeAccountTransactions} onQuickOrder={() => openAddModal('SHOPPING')} onViewStats={() => setActiveTab('STATS')} />}
+            {activeTab === 'HOME' && <Dashboard transactions={activeAccountTransactions} account={activeAccount} onQuickOrder={() => openAddModal('SHOPPING')} onViewStats={() => setActiveTab('STATS')} />}
             {activeTab === 'STATS' && <StatsView transactions={activeAccountTransactions} />}
             {activeTab === 'LOG' && <TransactionList transactions={activeAccountTransactions} onDelete={deleteTransaction} onEdit={handleEditTransaction} />}
             {activeTab === 'CALENDAR' && <CalendarView transactions={activeAccountTransactions} />}
@@ -374,6 +376,7 @@ const App: React.FC = () => {
               onCancel={() => { setShowAddModal(false); setEditingTransaction(undefined); }}
               initialMode={addModalMode}
               initialData={editingTransaction}
+              history={activeAccountTransactions}
             />
           </div>
         )}
@@ -384,6 +387,7 @@ const App: React.FC = () => {
                 theme={theme}
                 setTheme={setTheme}
                 accounts={accounts}
+                activeAccountId={activeAccountId}
                 userProfile={userProfile}
                 aiSettings={aiSettings}
                 onClose={() => setShowSettingsModal(false)}

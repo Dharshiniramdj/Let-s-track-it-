@@ -52,6 +52,7 @@ export interface Account {
     type: 'PERSONAL' | 'FAMILY' | 'BUSINESS';
     color: string;
     avatarSeed: string;
+    budgets?: Record<string, number>; // Category name -> Amount limit
 }
 
 export interface DashboardStats {

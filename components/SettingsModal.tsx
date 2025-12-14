@@ -1,9 +1,10 @@
-import React, { useState, useRef } from 'react';
-import { Account, UserProfile, AISettings } from '../types';
-import { X, User, CreditCard, Trash2, Plus, AlertTriangle, Check, Wallet, Smartphone, Mail, Download, Upload, Bot, Sparkles, SmartphoneCharging, Moon, Sun, Monitor } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Account, UserProfile, AISettings, Category } from '../types';
+import { X, User, CreditCard, Trash2, Plus, AlertTriangle, Check, Wallet, Smartphone, Mail, Download, Upload, Bot, Sparkles, SmartphoneCharging, Moon, Sun, Monitor, Target } from 'lucide-react';
 
 interface Props {
   accounts: Account[];
+  activeAccountId: string;
   userProfile: UserProfile;
   aiSettings: AISettings;
   theme: 'DARK' | 'LIGHT';
@@ -21,6 +22,7 @@ const AVATAR_SEEDS = ['Felix', 'Aneka', 'Zoe', 'Jack', 'Trouble', 'Coco', 'Max',
 
 const SettingsModal: React.FC<Props> = ({ 
     accounts, 
+    activeAccountId,
     userProfile, 
     aiSettings,
     theme,
@@ -33,11 +35,38 @@ const SettingsModal: React.FC<Props> = ({
     onExportData,
     onImportData
 }) => {
-  const [activeTab, setActiveTab] = useState<'PROFILE' | 'ACCOUNTS' | 'AI' | 'DATA' | 'APPEARANCE'>('ACCOUNTS');
+  const [activeTab, setActiveTab] = useState<'PROFILE' | 'ACCOUNTS' | 'AI' | 'BUDGETS' | 'DATA' | 'APPEARANCE'>('BUDGETS');
   const [newAccountName, setNewAccountName] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Budget Edit State
+  const activeAccount = accounts.find(a => a.id === activeAccountId);
+  // Using a local map for editing to avoid constant prop updates
+  const [budgetMap, setBudgetMap] = useState<Record<string, number>>(activeAccount?.budgets || {});
+
+  useEffect(() => {
+    if (activeAccount) {
+        setBudgetMap(activeAccount.budgets || {});
+    }
+  }, [activeAccount]);
+
+  const handleBudgetChange = (category: string, amount: string) => {
+    setBudgetMap(prev => ({
+        ...prev,
+        [category]: parseFloat(amount) || 0
+    }));
+  };
+
+  const saveBudgets = () => {
+    if (!activeAccount) return;
+    const updatedAccounts = accounts.map(a => 
+        a.id === activeAccountId ? { ...a, budgets: budgetMap } : a
+    );
+    onUpdateAccounts(updatedAccounts);
+    alert('Budgets updated successfully!');
+  };
 
   // Profile Form State
   const [tempName, setTempName] = useState(userProfile.name);
@@ -66,7 +95,8 @@ const SettingsModal: React.FC<Props> = ({
       name: newAccountName,
       type: 'PERSONAL',
       color: 'amber',
-      avatarSeed: Math.random().toString(36).substring(7)
+      avatarSeed: Math.random().toString(36).substring(7),
+      budgets: {}
     };
     
     onUpdateAccounts([...accounts, newAccount]);
@@ -113,6 +143,12 @@ const SettingsModal: React.FC<Props> = ({
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm md:text-base ${activeTab === 'ACCOUNTS' ? 'bg-amber-500 text-black font-bold' : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-main)]'}`}
                 >
                     <CreditCard size={18} className="flex-shrink-0"/> <span className="truncate">Accounts</span>
+                </button>
+                 <button 
+                    onClick={() => setActiveTab('BUDGETS')}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm md:text-base ${activeTab === 'BUDGETS' ? 'bg-amber-500 text-black font-bold' : 'text-[var(--text-muted)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-main)]'}`}
+                >
+                    <Target size={18} className="flex-shrink-0"/> <span className="truncate">Budgets</span>
                 </button>
                 <button 
                     onClick={() => setActiveTab('PROFILE')}
@@ -254,6 +290,43 @@ const SettingsModal: React.FC<Props> = ({
                                 </button>
                             </div>
                         </form>
+                    </div>
+                )}
+                
+                {activeTab === 'BUDGETS' && (
+                    <div className="space-y-6">
+                        <div className="flex items-center justify-between mb-4">
+                             <div>
+                                 <h3 className="text-lg font-bold text-[var(--text-main)]">Monthly Budgets</h3>
+                                 <p className="text-xs text-[var(--text-muted)]">For account: <span className="text-amber-500 font-bold">{activeAccount?.name}</span></p>
+                             </div>
+                             <div className="bg-amber-500/10 p-2 rounded-lg text-amber-500"><Target size={24} /></div>
+                        </div>
+
+                        <div className="space-y-3 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-2xl p-4">
+                            <p className="text-xs text-[var(--text-muted)] mb-2">Set monthly spending limits for each category.</p>
+                            {Object.values(Category).filter(c => c !== 'INCOME').map((cat) => (
+                                <div key={cat} className="flex items-center justify-between gap-4 py-2 border-b border-[var(--border-color)] last:border-0">
+                                    <label className="text-sm font-bold text-[var(--text-main)] flex-1">{cat}</label>
+                                    <div className="relative w-32">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">₹</span>
+                                        <input 
+                                            type="number" 
+                                            value={budgetMap[cat] || ''}
+                                            onChange={(e) => handleBudgetChange(cat, e.target.value)}
+                                            placeholder="No Limit"
+                                            className="w-full pl-6 pr-3 py-2 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-lg text-sm text-right focus:border-amber-500 focus:outline-none"
+                                        />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="pt-4">
+                            <button onClick={saveBudgets} className="w-full py-3 bg-amber-500 text-black font-bold rounded-xl hover:bg-amber-400 transition-colors shadow-lg shadow-amber-500/10">
+                                Save Budget Limits
+                            </button>
+                        </div>
                     </div>
                 )}
 

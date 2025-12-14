@@ -1,19 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Transaction, TransactionType, PaymentMode, Category, ShoppingDetails } from '../types';
 import { parseNaturalLanguageTransaction, parseImageTransaction } from '../services/geminiService';
-import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag, Save } from 'lucide-react';
+import { Sparkles, Loader2, Plus, X, Camera, Upload, Receipt, ShoppingBag, Save, Wand2 } from 'lucide-react';
 
 interface Props {
   onSave: (transaction: Omit<Transaction, 'id' | 'createdAt' | 'accountId'>) => void;
   onCancel: () => void;
   initialMode?: 'DEFAULT' | 'SHOPPING';
   initialData?: Transaction;
+  history?: Transaction[];
 }
 
-const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEFAULT', initialData }) => {
+const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEFAULT', initialData, history = [] }) => {
   const [nlInput, setNlInput] = useState('');
   const [isLoadingAi, setIsLoadingAi] = useState(false);
   const [showShopping, setShowShopping] = useState(initialMode === 'SHOPPING');
+  const [isAutoFilled, setIsAutoFilled] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Form State
@@ -60,6 +62,27 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
         setCategory(Category.SHOPPING);
     }
   }, [initialData, initialMode]);
+
+  // Smart Category Auto-Suggest
+  const handlePurposeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setPurpose(val);
+    setIsAutoFilled(false);
+
+    // Only auto-fill if user hasn't edited the transaction type/category yet (simple heuristic: default is EXPENSE/OTHERS)
+    // or we can just always suggest and let user override.
+    if (!initialData && val.length > 2) {
+        // Find most recent matching transaction
+        const match = history.find(t => t.purpose.toLowerCase() === val.toLowerCase() || t.purpose.toLowerCase().includes(val.toLowerCase()));
+        if (match) {
+            setCategory(match.category);
+            setType(match.type);
+            setMode(match.mode);
+            setPlatform(match.platform);
+            setIsAutoFilled(true);
+        }
+    }
+  };
 
   const populateForm = (result: any) => {
     if (result) {
@@ -231,6 +254,21 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
           </div>
         </div>
 
+        <div>
+          <div className="flex justify-between">
+            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Purpose / Description</label>
+            {isAutoFilled && <span className="text-[10px] text-amber-500 flex items-center gap-1"><Wand2 size={10}/> Auto-suggested</span>}
+          </div>
+          <input
+            required
+            type="text"
+            value={purpose}
+            onChange={handlePurposeChange}
+            placeholder="e.g. Swiggy, Uber, Rent"
+            className={`w-full px-4 py-3 bg-[var(--bg-input)] border ${isAutoFilled ? 'border-amber-500/50' : 'border-[var(--border-color)]'} rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] transition-colors`}
+          />
+        </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
             <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Type</label>
@@ -272,18 +310,6 @@ const TransactionForm: React.FC<Props> = ({ onSave, onCancel, initialMode = 'DEF
               className="w-full px-3 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)] text-sm"
             />
           </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Purpose / Description</label>
-          <input
-            required
-            type="text"
-            value={purpose}
-            onChange={(e) => setPurpose(e.target.value)}
-            placeholder="What was this for?"
-            className="w-full px-4 py-3 bg-[var(--bg-input)] border border-[var(--border-color)] rounded-xl focus:outline-none focus:border-amber-500 text-[var(--text-main)]"
-          />
         </div>
 
         {/* Shopping Toggle */}
