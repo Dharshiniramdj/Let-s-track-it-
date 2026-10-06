@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Transaction, Account, UserProfile, AISettings, AppData, TransactionType } from './types';
+import { Transaction, Account, UserProfile, AISettings, AppData, TransactionType, SavingsGoal } from './types';
+import { resolveAvatarUrl, DEFAULT_AVATAR } from './utils/avatars';
 import Dashboard from './components/Dashboard';
 import TransactionForm from './components/TransactionForm';
 import TransactionList from './components/TransactionList';
@@ -8,7 +9,7 @@ import StatsView from './components/StatsView';
 import AdvisorView from './components/AdvisorView';
 import SettingsModal from './components/SettingsModal';
 import NotificationsPanel from './components/NotificationsPanel';
-import { Home, List, Calendar as CalendarIcon, Plus, Settings, Bell, BarChart, User, Sparkles, BrainCircuit } from 'lucide-react';
+import { Home, List, Calendar as CalendarIcon, Plus, Settings, Bell, BarChart, User, Sparkles, BrainCircuit, MessageSquareText } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'HOME' | 'STATS' | 'LOG' | 'CALENDAR' | 'ADVISOR'>('HOME');
@@ -20,12 +21,13 @@ const App: React.FC = () => {
   
   // Edit State
   const [editingTransaction, setEditingTransaction] = useState<Transaction | undefined>(undefined);
+  const [chatInitialPrompt, setChatInitialPrompt] = useState<string>('');
   
   // -- Data State --
   // User Profile
   const [userProfile, setUserProfile] = useState<UserProfile>(() => {
       const saved = localStorage.getItem('lets_track_it_profile');
-      return saved ? JSON.parse(saved) : { name: 'Personal', email: '', phone: '', isVerified: false, avatarSeed: 'Felix' };
+      return saved ? JSON.parse(saved) : { name: 'Alex Vance', email: '', phone: '', isVerified: false, avatarSeed: DEFAULT_AVATAR };
   });
 
   // AI Settings
@@ -60,8 +62,42 @@ const App: React.FC = () => {
     return [];
   });
 
+  // Monthly Savings Goals
+  const [goals, setGoals] = useState<SavingsGoal[]>(() => {
+    const saved = localStorage.getItem('lets_track_it_goals');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    const currentMonth = new Date().toISOString().slice(0, 7);
+    return [
+      {
+        id: 'default-goal-groceries',
+        accountId: 'default',
+        category: 'Groceries',
+        targetAmount: 12000,
+        month: currentMonth,
+        notes: 'Monthly grocery target to avoid quick-commerce impulse orders',
+        createdAt: Date.now() - 100000
+      },
+      {
+        id: 'default-goal-electronics',
+        accountId: 'default',
+        category: 'Electronics',
+        targetAmount: 20000,
+        month: currentMonth,
+        notes: 'Cap for gadgets, accessories, and electronics upgrades',
+        createdAt: Date.now() - 50000
+      }
+    ];
+  });
+
   // -- Persistence Effects --
   useEffect(() => { localStorage.setItem('lets_track_it_data', JSON.stringify(transactions)); }, [transactions]);
+  useEffect(() => { localStorage.setItem('lets_track_it_goals', JSON.stringify(goals)); }, [goals]);
   useEffect(() => { localStorage.setItem('lets_track_it_accounts', JSON.stringify(accounts)); 
     if (!accounts.find(a => a.id === activeAccountId) && accounts.length > 0) setActiveAccountId(accounts[0].id);
   }, [accounts]);
@@ -80,6 +116,10 @@ const App: React.FC = () => {
   const activeAccountTransactions = useMemo(() => {
     return transactions.filter(t => t.accountId === activeAccountId);
   }, [transactions, activeAccountId]);
+
+  const activeAccountGoals = useMemo(() => {
+    return goals.filter(g => g.accountId === activeAccountId || !g.accountId);
+  }, [goals, activeAccountId]);
 
   const activeAccount = accounts.find(a => a.id === activeAccountId);
   const activeAccountName = activeAccount?.name || 'Account';
@@ -147,6 +187,33 @@ const App: React.FC = () => {
   const handleDeleteAccount = (id: string) => {
       setAccounts(prev => prev.filter(a => a.id !== id));
       setTransactions(prev => prev.filter(t => t.accountId !== id));
+      setGoals(prev => prev.filter(g => g.accountId !== id));
+  };
+
+  // -- Savings Goals Handlers --
+  const handleAddGoal = (goalData: Omit<SavingsGoal, 'id' | 'createdAt'>) => {
+    const newGoal: SavingsGoal = {
+      ...goalData,
+      id: crypto.randomUUID(),
+      createdAt: Date.now()
+    };
+    setGoals(prev => [newGoal, ...prev]);
+  };
+
+  const handleUpdateGoal = (id: string, updates: Partial<Omit<SavingsGoal, 'id' | 'createdAt'>>) => {
+    setGoals(prev => prev.map(g => g.id === id ? { ...g, ...updates } : g));
+  };
+
+  const handleDeleteGoal = (id: string) => {
+    if (window.confirm("Remove this monthly savings goal?")) {
+      setGoals(prev => prev.filter(g => g.id !== id));
+    }
+  };
+
+  const handleAskAiAboutGoal = (category: string, target: number, spent: number) => {
+    const prompt = `I am tracking my ${category} category goal for this month. My target budget is ₹${target.toLocaleString()} and I have spent ₹${spent.toLocaleString()} so far. What specific advice or cuts do you recommend to stay on track?`;
+    setChatInitialPrompt(prompt);
+    setActiveTab('ADVISOR');
   };
 
   // -- Backup & Restore Logic --
@@ -156,6 +223,7 @@ const App: React.FC = () => {
           profile: userProfile,
           accounts,
           transactions,
+          goals,
           aiSettings
       };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -176,7 +244,8 @@ const App: React.FC = () => {
                   setUserProfile(data.profile || userProfile);
                   setAccounts(data.accounts);
                   setTransactions(data.transactions);
-                  if(data.aiSettings) setAiSettings(data.aiSettings);
+                  if (data.goals) setGoals(data.goals);
+                  if (data.aiSettings) setAiSettings(data.aiSettings);
                   alert("Data imported successfully!");
                   setShowSettingsModal(false);
               } else {
@@ -197,12 +266,17 @@ const App: React.FC = () => {
         
         {/* User Profile Section */}
         <div className="flex items-center gap-4 mb-10">
-          <div className="w-12 h-12 rounded-full bg-stone-700 overflow-hidden border-2 border-amber-500/50">
-             <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userProfile.avatarSeed || userProfile.name}`} alt="User" className="w-full h-full object-cover" />
+          <div className="w-12 h-12 rounded-full bg-stone-800 overflow-hidden border-2 border-amber-500/50 shadow-md shrink-0">
+             <img 
+               src={resolveAvatarUrl(userProfile.avatarSeed)} 
+               alt={userProfile.name} 
+               referrerPolicy="no-referrer"
+               className="w-full h-full object-cover" 
+             />
           </div>
-          <div>
-            <h3 className="font-bold text-[var(--text-main)] text-lg truncate max-w-[120px]">{userProfile.name}</h3>
-            <p className="text-xs text-[var(--text-muted)]">Finance Manager</p>
+          <div className="truncate">
+            <h3 className="font-bold text-[var(--text-main)] text-base truncate max-w-[120px]">{userProfile.name}</h3>
+            <p className="text-xs text-[var(--text-muted)] truncate">Finance Manager</p>
           </div>
           <button 
             onClick={() => setShowSettingsModal(true)} 
@@ -314,8 +388,17 @@ const App: React.FC = () => {
             </div>
             <div className="flex items-center gap-3 md:gap-4">
                {/* Mobile Account Switcher Trigger */}
-               <button onClick={() => setShowSettingsModal(true)} className="md:hidden p-3 rounded-full bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-main)] border border-[var(--border-color)]">
-                  <User size={20} />
+               <button 
+                 onClick={() => setShowSettingsModal(true)} 
+                 className="md:hidden w-10 h-10 rounded-full overflow-hidden border-2 border-amber-500/50 shadow-sm shrink-0 hover:scale-105 active:scale-95 transition-all"
+                 title="Profile & Settings"
+               >
+                  <img 
+                    src={resolveAvatarUrl(userProfile.avatarSeed)} 
+                    alt={userProfile.name} 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover" 
+                  />
                </button>
                
                {/* Notification Bell with Logic */}
@@ -361,12 +444,45 @@ const App: React.FC = () => {
          </div>
 
          <div className="px-4 md:px-8 pb-10">
-            {activeTab === 'HOME' && <Dashboard transactions={activeAccountTransactions} account={activeAccount} onQuickOrder={() => openAddModal('SHOPPING')} onViewStats={() => setActiveTab('STATS')} />}
+            {activeTab === 'HOME' && (
+              <Dashboard 
+                transactions={activeAccountTransactions} 
+                account={activeAccount} 
+                goals={activeAccountGoals}
+                onAddGoal={handleAddGoal}
+                onUpdateGoal={handleUpdateGoal}
+                onDeleteGoal={handleDeleteGoal}
+                onAskAiAboutGoal={handleAskAiAboutGoal}
+                onQuickOrder={() => openAddModal('SHOPPING')} 
+                onViewStats={() => setActiveTab('STATS')} 
+              />
+            )}
             {activeTab === 'STATS' && <StatsView transactions={activeAccountTransactions} />}
             {activeTab === 'LOG' && <TransactionList transactions={activeAccountTransactions} onDelete={deleteTransaction} onEdit={handleEditTransaction} />}
             {activeTab === 'CALENDAR' && <CalendarView transactions={activeAccountTransactions} />}
-            {activeTab === 'ADVISOR' && <AdvisorView transactions={activeAccountTransactions} aiSettings={aiSettings} />}
+            {activeTab === 'ADVISOR' && (
+              <AdvisorView 
+                transactions={activeAccountTransactions} 
+                aiSettings={aiSettings}
+                goals={activeAccountGoals}
+                account={activeAccount}
+                initialChatPrompt={chatInitialPrompt}
+                onClearInitialChatPrompt={() => setChatInitialPrompt('')}
+              />
+            )}
          </div>
+
+        {/* Floating Quick Gemini Chatbot Trigger */}
+        {activeTab !== 'ADVISOR' && (
+          <button
+            onClick={() => setActiveTab('ADVISOR')}
+            className="fixed bottom-24 md:bottom-8 right-6 z-30 flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-400 text-black font-bold shadow-xl shadow-amber-500/25 hover:scale-105 active:scale-95 transition-all"
+            title="Chat with Gemini Financial Advisor"
+          >
+            <Sparkles size={18} />
+            <span className="text-xs font-bold hidden sm:inline">Ask AI Advisor</span>
+          </button>
+        )}
 
         {/* Add Transaction Modal */}
         {showAddModal && (

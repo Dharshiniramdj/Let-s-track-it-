@@ -7,14 +7,15 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, (process as any).cwd(), '');
   
-  // Prefer env from .env files, fallback to system environment variables (critical for Vercel/CI)
-  const apiKey = env.API_KEY || process.env.API_KEY;
+  // Prefer env from .env files, fallback to system environment variables (critical for Vercel/CI/AI Studio)
+  const apiKey = env.API_KEY || process.env.API_KEY || env.GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
 
   return {
     plugins: [react()],
     define: {
-      // This ensures process.env.API_KEY is replaced by the actual key string during build
-      'process.env.API_KEY': JSON.stringify(apiKey)
+      // Replace process.env keys with actual values during build/dev
+      'process.env.API_KEY': JSON.stringify(apiKey),
+      'process.env.GEMINI_API_KEY': JSON.stringify(apiKey)
     }
   };
 });

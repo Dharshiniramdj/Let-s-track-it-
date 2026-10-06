@@ -1,16 +1,32 @@
 import React, { useMemo, useState } from 'react';
-import { Transaction, TransactionType, Account, Category } from '../types';
-import { Wallet, ArrowUpRight, ArrowDownRight, ShoppingBag, Zap, CreditCard, TrendingDown, Target } from 'lucide-react';
+import { Transaction, TransactionType, Account, SavingsGoal } from '../types';
+import GoalsSection from './GoalsSection';
+import { Wallet, ArrowUpRight, ArrowDownRight, ShoppingBag, Zap, CreditCard, TrendingDown } from 'lucide-react';
 import { BarChart, Bar, XAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 
 interface Props {
   transactions: Transaction[];
   account?: Account;
+  goals: SavingsGoal[];
+  onAddGoal: (goal: Omit<SavingsGoal, 'id' | 'createdAt'>) => void;
+  onUpdateGoal: (id: string, updates: Partial<Omit<SavingsGoal, 'id' | 'createdAt'>>) => void;
+  onDeleteGoal: (id: string) => void;
+  onAskAiAboutGoal: (category: string, target: number, spent: number) => void;
   onQuickOrder: () => void;
   onViewStats: () => void;
 }
 
-const Dashboard: React.FC<Props> = ({ transactions, account, onQuickOrder, onViewStats }) => {
+const Dashboard: React.FC<Props> = ({ 
+  transactions, 
+  account, 
+  goals,
+  onAddGoal,
+  onUpdateGoal,
+  onDeleteGoal,
+  onAskAiAboutGoal,
+  onQuickOrder, 
+  onViewStats 
+}) => {
   const [timeRange, setTimeRange] = useState<'7D' | '30D' | '90D'>('7D');
 
   const stats = useMemo(() => {
@@ -47,35 +63,12 @@ const Dashboard: React.FC<Props> = ({ transactions, account, onQuickOrder, onVie
     return data;
   }, [transactions, timeRange]);
 
-  // Calculate Budget Progress
-  const budgetProgress = useMemo(() => {
-    if (!account?.budgets) return [];
-
-    const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
-    const expensesByCategory: Record<string, number> = {};
-
-    transactions.forEach(t => {
-        if (t.type === TransactionType.EXPENSE && t.date.startsWith(currentMonth)) {
-            expensesByCategory[t.category] = (expensesByCategory[t.category] || 0) + t.amount;
-        }
-    });
-
-    return Object.entries(account.budgets)
-        .filter(([_, limit]) => limit > 0)
-        .map(([category, limit]) => {
-            const spent = expensesByCategory[category] || 0;
-            const percentage = Math.min((spent / limit) * 100, 100);
-            return { category, limit, spent, percentage };
-        })
-        .sort((a, b) => b.percentage - a.percentage);
-  }, [transactions, account]);
-
   const balance = stats.income - stats.expense;
   const recentTx = transactions.slice(0, 5);
 
   return (
     <div className="space-y-6 pb-20 md:pb-0 animate-in fade-in duration-500">
-        {/* Top Row */}
+        {/* Top Row: Balance Card & Spending Analysis */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Balance Card */}
             <div className="dashboard-card p-6 bg-gradient-to-br from-[var(--bg-card)] to-[var(--bg-secondary)] border border-[var(--border-color)] relative overflow-hidden group shadow-lg">
@@ -170,42 +163,16 @@ const Dashboard: React.FC<Props> = ({ transactions, account, onQuickOrder, onVie
             </div>
         </div>
 
-        {/* Budget Progress Section */}
-        {budgetProgress.length > 0 && (
-            <div className="bg-[var(--bg-card)] p-6 rounded-2xl border border-[var(--border-color)]">
-                 <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-[var(--bg-secondary)] rounded-lg text-amber-500"><Target size={18} /></div>
-                    <h3 className="font-bold text-[var(--text-main)]">Monthly Budgets</h3>
-                 </div>
-                 <div className="space-y-4">
-                     {budgetProgress.map(item => {
-                         let color = 'bg-emerald-500';
-                         if (item.percentage >= 85) color = 'bg-rose-500';
-                         else if (item.percentage >= 50) color = 'bg-amber-500';
-                         
-                         return (
-                            <div key={item.category}>
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="text-xs font-bold text-[var(--text-main)]">{item.category}</span>
-                                    <span className="text-xs font-mono text-[var(--text-muted)]">
-                                        ₹{item.spent.toLocaleString()} / <span className="text-[var(--text-main)]">₹{item.limit.toLocaleString()}</span>
-                                    </span>
-                                </div>
-                                <div className="h-2 w-full bg-[var(--bg-input)] rounded-full overflow-hidden border border-[var(--border-color)]">
-                                    <div 
-                                        className={`h-full ${color} transition-all duration-500`} 
-                                        style={{ width: `${item.percentage}%` }}
-                                    ></div>
-                                </div>
-                                {item.percentage >= 85 && (
-                                    <p className="text-[10px] text-rose-500 mt-1 font-bold">⚠️ Approaching Limit</p>
-                                )}
-                            </div>
-                         );
-                     })}
-                 </div>
-            </div>
-        )}
+        {/* New 'Goals' Section in Dashboard: Monthly Savings Targets & Progress */}
+        <GoalsSection
+          transactions={transactions}
+          goals={goals}
+          activeAccountId={account?.id || 'default'}
+          onAddGoal={onAddGoal}
+          onUpdateGoal={onUpdateGoal}
+          onDeleteGoal={onDeleteGoal}
+          onAskAiAboutGoal={onAskAiAboutGoal}
+        />
 
         {/* Recent Transactions */}
         <div>

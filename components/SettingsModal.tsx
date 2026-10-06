@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Account, UserProfile, AISettings, Category } from '../types';
-import { X, User, CreditCard, Trash2, Plus, AlertTriangle, Check, Wallet, Smartphone, Mail, Download, Upload, Bot, Sparkles, SmartphoneCharging, Moon, Sun, Monitor, Target } from 'lucide-react';
+import { PRESET_AVATARS, resolveAvatarUrl } from '../utils/avatars';
+import { X, User, CreditCard, Trash2, Plus, AlertTriangle, Check, Wallet, Smartphone, Mail, Download, Upload, Bot, Sparkles, SmartphoneCharging, Moon, Sun, Monitor, Target, Camera } from 'lucide-react';
 
 interface Props {
   accounts: Account[];
@@ -17,8 +18,6 @@ interface Props {
   onExportData: () => void;
   onImportData: (file: File) => void;
 }
-
-const AVATAR_SEEDS = ['Felix', 'Aneka', 'Zoe', 'Jack', 'Trouble', 'Coco', 'Max', 'Luna', 'Buster', 'Bella'];
 
 const SettingsModal: React.FC<Props> = ({ 
     accounts, 
@@ -73,6 +72,23 @@ const SettingsModal: React.FC<Props> = ({
   const [tempEmail, setTempEmail] = useState(userProfile.email);
   const [tempPhone, setTempPhone] = useState(userProfile.phone);
   const [tempAvatarSeed, setTempAvatarSeed] = useState(userProfile.avatarSeed || userProfile.name);
+  const avatarUploadRef = useRef<HTMLInputElement>(null);
+
+  const handleCustomAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 3 * 1024 * 1024) {
+      alert("Please choose an image under 3MB.");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (typeof event.target?.result === 'string') {
+        setTempAvatarSeed(event.target.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSaveProfile = () => {
     onUpdateProfile({
@@ -181,29 +197,94 @@ const SettingsModal: React.FC<Props> = ({
                 
                 {activeTab === 'PROFILE' && (
                     <div className="space-y-6">
-                        <div className="flex items-center gap-4 mb-6">
-                             <div className="w-16 h-16 rounded-full bg-stone-800 overflow-hidden border-2 border-amber-500">
-                                <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${tempAvatarSeed}`} alt="User" className="w-full h-full object-cover" />
-                             </div>
-                             <div>
-                                <p className="text-[var(--text-muted)] text-xs uppercase font-bold tracking-wider mb-1">Editing Profile</p>
-                                <p className="text-xl font-bold text-[var(--text-main)]">{userProfile.name}</p>
-                             </div>
+                        {/* Active Profile Photo Card */}
+                        <div className="flex flex-col sm:flex-row items-center gap-5 p-5 rounded-2xl bg-[var(--bg-card)] border border-[var(--border-color)]">
+                            <div className="relative group">
+                                <div className="w-20 h-20 rounded-2xl bg-stone-900 overflow-hidden border-2 border-amber-500 shadow-xl">
+                                    <img 
+                                        src={resolveAvatarUrl(tempAvatarSeed)} 
+                                        alt="User Profile" 
+                                        referrerPolicy="no-referrer"
+                                        className="w-full h-full object-cover" 
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => avatarUploadRef.current?.click()}
+                                    className="absolute -bottom-2 -right-2 p-1.5 rounded-xl bg-amber-500 text-black shadow-lg hover:bg-amber-400 transition-colors"
+                                    title="Upload Custom Photo"
+                                >
+                                    <Camera size={14} />
+                                </button>
+                            </div>
+                            <div className="text-center sm:text-left flex-1">
+                                <p className="text-[10px] text-[var(--text-muted)] uppercase font-bold tracking-wider mb-0.5">Active Profile Photo</p>
+                                <p className="text-lg font-bold text-[var(--text-main)]">{tempName || 'User'}</p>
+                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => avatarUploadRef.current?.click()}
+                                        className="text-xs font-bold text-amber-500 hover:text-amber-400 flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-amber-500/10 border border-amber-500/20 transition-colors"
+                                    >
+                                        <Upload size={12} /> Upload Photo
+                                    </button>
+                                    {tempAvatarSeed && tempAvatarSeed.startsWith('data:') && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setTempAvatarSeed(PRESET_AVATARS[0].src)}
+                                            className="text-xs text-[var(--text-muted)] hover:text-rose-400 py-1.5 px-2.5 transition-colors"
+                                        >
+                                            Reset to Preset
+                                        </button>
+                                    )}
+                                </div>
+                                <input
+                                    type="file"
+                                    ref={avatarUploadRef}
+                                    onChange={handleCustomAvatarUpload}
+                                    accept="image/*"
+                                    className="hidden"
+                                />
+                            </div>
                         </div>
 
-                        {/* Avatar Picker */}
-                        <div className="mb-6">
-                            <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider mb-2">Choose Avatar</label>
-                            <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-                                {AVATAR_SEEDS.map((seed) => (
-                                    <button 
-                                        key={seed}
-                                        onClick={() => setTempAvatarSeed(seed)}
-                                        className={`flex-shrink-0 w-12 h-12 rounded-full border-2 overflow-hidden transition-all ${tempAvatarSeed === seed ? 'border-amber-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                                    >
-                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`} alt={seed} className="w-full h-full object-cover" />
-                                    </button>
-                                ))}
+                        {/* Studio Portrait Presets */}
+                        <div>
+                            <div className="flex items-center justify-between mb-3">
+                                <label className="block text-xs font-bold text-[var(--text-muted)] uppercase tracking-wider">
+                                    Choose Studio Avatar
+                                </label>
+                                <span className="text-[11px] text-[var(--text-muted)]">5 High-Definition Styles</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                {PRESET_AVATARS.map((preset) => {
+                                    const isSelected = tempAvatarSeed === preset.src || tempAvatarSeed === preset.id;
+                                    return (
+                                        <button
+                                            key={preset.id}
+                                            type="button"
+                                            onClick={() => setTempAvatarSeed(preset.src)}
+                                            className={`p-3 rounded-2xl border text-left transition-all flex items-center gap-3 ${
+                                                isSelected
+                                                    ? 'bg-amber-500/10 border-amber-500 ring-2 ring-amber-500/30'
+                                                    : 'bg-[var(--bg-card)] border-[var(--border-color)] hover:border-amber-500/40 opacity-80 hover:opacity-100'
+                                            }`}
+                                        >
+                                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-stone-900 shrink-0 border border-[var(--border-color)] shadow-sm">
+                                                <img
+                                                    src={preset.src}
+                                                    alt={preset.name}
+                                                    referrerPolicy="no-referrer"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <div className="truncate">
+                                                <p className="text-xs font-bold text-[var(--text-main)] truncate">{preset.name}</p>
+                                                <p className="text-[10px] text-[var(--text-muted)] truncate">{preset.role}</p>
+                                            </div>
+                                        </button>
+                                    );
+                                })}
                             </div>
                         </div>
 

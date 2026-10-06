@@ -15,6 +15,7 @@ export enum Category {
   FOOD = 'FOOD',
   GROCERY = 'GROCERY',
   SHOPPING = 'SHOPPING',
+  ELECTRONICS = 'ELECTRONICS',
   TRAVEL = 'TRAVEL',
   BILLS = 'BILLS',
   ENTERTAINMENT = 'ENTERTAINMENT',
@@ -43,6 +44,16 @@ export interface Transaction {
   purpose: string;
   category: Category;
   shoppingDetails?: ShoppingDetails;
+  createdAt: number;
+}
+
+export interface SavingsGoal {
+  id: string;
+  accountId: string;
+  category: string; // e.g., 'Groceries', 'Electronics', 'Food', etc.
+  targetAmount: number; // Monthly spending limit or target savings budget
+  month: string; // YYYY-MM
+  notes?: string;
   createdAt: number;
 }
 
@@ -85,10 +96,30 @@ export interface Suggestion {
   impact: 'HIGH' | 'MEDIUM' | 'LOW';
 }
 
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'model';
+  content: string;
+  timestamp: number;
+  modelUsed?: string;
+}
+
+export type ChatRolePreset = 'COACH' | 'AUDITOR' | 'PLANNER' | 'FRUGAL';
+
+export interface ChatBotRoleConfig {
+  id: ChatRolePreset;
+  name: string;
+  tagline: string;
+  systemInstruction: string;
+  defaultModel: 'gemini-3.5-flash' | 'gemini-3.1-flash-lite' | 'gemini-3.1-pro-preview';
+  badge: string;
+}
+
 export interface AppData {
     version: number;
     profile: UserProfile;
     accounts: Account[];
     transactions: Transaction[];
+    goals?: SavingsGoal[];
     aiSettings: AISettings;
 }

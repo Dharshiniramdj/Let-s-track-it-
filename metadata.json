@@ -1,5 +1,6 @@
 {
   "name": "Let's Track It",
-  "description": "A personal transaction and shopping tracker with AI-powered insights, dashboard visualization, and calendar integration.",
-  "requestFramePermissions": []
+  "description": "A unified personal finance and shopping suite that integrates budget tracking with real-time order logistics and AI-powered financial coaching.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
